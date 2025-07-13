@@ -2,6 +2,10 @@ package com.example.jeansapplication
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import android.speech.SpeechRecognizer
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
@@ -64,7 +68,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
-
+import kotlin.concurrent.thread
 
 
 @Composable
@@ -80,7 +84,7 @@ fun MainPageManner(navController: NavHostController) {
 }
 
 
-// 视频功能处理类
+
 class VideoProcessing: ComponentActivity() {
     // 请求码
     private val REQUEST_CODE_PERMISSIONS = 10
@@ -126,34 +130,71 @@ fun VideoCalling(navController: NavHostController){
     // 异步获取CameraX摄像头管理器的实例
     val cameraProviderFuture = remember {androidx.camera.lifecycle.ProcessCameraProvider.getInstance(context)}
 
-    // 嵌入android原生view
-    AndroidView(
-        factory = { previewView },// 原声view
-        modifier = Modifier.height(400.dp).width(350.dp).clip(RoundedCornerShape(25.dp)),
-        update = {
-            // 拿到实例
-            val camara = cameraProviderFuture.get()
-            // 创建预览实例
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider) // 把画面输出给 PreviewView
+    val hasAudioPermission = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECORD_AUDIO
+    ) == PackageManager.PERMISSION_GRANTED
+
+    if (hasAudioPermission) {
+        // 嵌入android原生view
+        AndroidView(
+            factory = { previewView },// 原声view
+            modifier = Modifier.height(400.dp).width(350.dp).clip(RoundedCornerShape(25.dp)),
+            update = {
+                // 拿到实例
+                val camara = cameraProviderFuture.get()
+                // 创建预览实例
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider) // 把画面输出给 PreviewView
+                }
+                // 后置摄像头
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                try {
+                    camara.unbindAll() // 清除已有的绑定（避免冲突）
+                    camara.bindToLifecycle(
+                        lifecycleOwner, cameraSelector, preview // 绑定生命周期 + 用例
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
             }
-            // 后置摄像头
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-            try {
-                camara.unbindAll() // 清除已有的绑定（避免冲突）
-                camara.bindToLifecycle(
-                    lifecycleOwner, cameraSelector, preview // 绑定生命周期 + 用例
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
+        )
+        thread(start = true,name = "语音监听线程") {
+            // 修复：完善 AudioFormat 配置
+            val audioFormat = AudioFormat.Builder()
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)  // 设置编码为 16 位 PCM
+                .setSampleRate(44100)                         // 设置采样率为 44.1kHz
+                .setChannelMask(AudioFormat.CHANNEL_IN_MONO)  // 设置为单声道
+                .build()
+
+            // 修复：使用完整配置的 AudioFormat
+            val audioRecord = AudioRecord.Builder()
+                .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                .setAudioFormat(audioFormat)                  // 添加必要的音频格式
+                .setPrivacySensitive(true)
+                .setContext(context)
+                .setBufferSizeInBytes(2048)
+                .build()
+
+            audioRecord.startRecording()
+            // 缓冲区
+            val bufferSize = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT)
+            val pcmarrays = emptyArray<Any>()
+
+            // 缓冲区达到指定指定大小读取PCM数据
+            while (true) {
+                val readdatasize = audioRecord.read(pcmarrays,0,bufferSize)
+
+
             }
 
         }
 
-    )
-    // 后续接入AI
-
+    }
 }
+
+
 
 // 判断权限是否全部开启函数
 @Composable
@@ -600,6 +641,12 @@ fun ChatPage(navController: NavHostController) {
 @Composable
 fun AddContacts(navController: NavHostController) {
     Column(modifier = Modifier.fillMaxSize().background(Color(0.122f, 0.122f, 0.122f, 1.0f))){
+        // 账户按钮
+        Box(modifier = Modifier.fillMaxWidth().height(100.dp)){
+            Text(text = "Name",
+                textAlign = TextAlign.Center, // 文本局中
+                modifier = Modifier.width(100.dp).height(50.dp))
+        }
         
     }
 
