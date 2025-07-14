@@ -68,6 +68,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
+import com.konovalov.vad.webrtc.VadWebRTC
+import com.konovalov.vad.webrtc.config.FrameSize
+import com.konovalov.vad.webrtc.config.Mode
+import com.konovalov.vad.webrtc.config.SampleRate
 import kotlin.concurrent.thread
 
 
@@ -180,11 +184,28 @@ fun VideoCalling(navController: NavHostController){
             audioRecord.startRecording()
             // 缓冲区
             val bufferSize = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT)
-            val pcmarrays = emptyArray<Any>()
+            val pcmarrays= ShortArray(320)
 
             // 缓冲区达到指定指定大小读取PCM数据
             while (true) {
-                val readdatasize = audioRecord.read(pcmarrays,0,bufferSize)
+                val readdatasize = audioRecord.read(pcmarrays,0,320)
+
+                // VAD配置
+                val vad = VadWebRTC(
+                    sampleRate = SampleRate.SAMPLE_RATE_16K, // 采样率
+                    frameSize = FrameSize.FRAME_SIZE_320, // // 帧大小：320个采样点（约20ms音频）
+                    mode = Mode.VERY_AGGRESSIVE, // 检测严格程度，越激进越容易把静音判断为无语音
+                    silenceDurationMs = 300, // 语音检测结束值
+                    speechDurationMs = 50 // 开始语音的时间门限
+                )
+
+                if (readdatasize == 320) {
+                    if (vad.isSpeech(pcmarrays)) {
+                        // 检测到人声！
+                    } else {
+
+                    }
+                }
 
 
             }
