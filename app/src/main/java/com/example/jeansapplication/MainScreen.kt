@@ -77,13 +77,16 @@ import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.lifecycle.ViewModel
 import com.konovalov.vad.webrtc.VadWebRTC
 import com.konovalov.vad.webrtc.config.FrameSize
 import com.konovalov.vad.webrtc.config.Mode
 import com.konovalov.vad.webrtc.config.SampleRate
 import java.io.File
+import java.io.OutputStream
 import kotlin.concurrent.thread
 
 
@@ -134,7 +137,7 @@ class VideoProcessing: ComponentActivity() {
 }
 
 
-// 视频显示函数
+// AI操作函数
 @Composable
 fun VideoCalling(navController: NavHostController){
     // 上下文
@@ -146,11 +149,11 @@ fun VideoCalling(navController: NavHostController){
     // 异步获取CameraX摄像头管理器的实例
     val cameraProviderFuture = remember {androidx.camera.lifecycle.ProcessCameraProvider.getInstance(context)}
 
+
     val hasAudioPermission = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.RECORD_AUDIO
     ) == PackageManager.PERMISSION_GRANTED
-
     if (hasAudioPermission) {
         // 嵌入android原生view
         AndroidView(
@@ -179,85 +182,130 @@ fun VideoCalling(navController: NavHostController){
 
             }
         )
-        thread(start = true,name = "语音监听线程") {
-            // 修复：完善 AudioFormat 配置
-            val audioFormat = AudioFormat.Builder()
-                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)  // 设置编码为 16 位 PCM
-                .setSampleRate(44100)                         // 设置采样率为 44.1kHz
-                .setChannelMask(AudioFormat.CHANNEL_IN_MONO)  // 设置为单声道
-                .build()
+        LaunchedEffect(Unit){
+            thread(start = true,name = "语音监听线程") {
 
-            // 修复：使用完整配置的 AudioFormat
-            val audioRecord = AudioRecord.Builder()
-                .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
-                .setAudioFormat(audioFormat)                  // 添加必要的音频格式
-                .setPrivacySensitive(true)
-                .setContext(context)
-                .setBufferSizeInBytes(2048)
-                .build()
-
-            audioRecord.startRecording()
-            // 缓冲区
-            val bufferSize = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT)
-            // 读取PCM数据存储数组
-            val pcmarray = ShortArray(2048)
-
-            // 缓冲区达到指定指定大小读取PCM数据
-            while (true) {
-                // 从系统级缓冲区读取数据并复制进入软件级缓冲区
-                val readdatasize = audioRecord.read(pcmarray,0,320)
-
-                // VAD配置
-                
-                val vad = VadWebRTC(
-                    sampleRate = SampleRate.SAMPLE_RATE_16K, // 采样率
-                    frameSize = FrameSize.FRAME_SIZE_320, // // 帧大小：320个采样点（约20ms音频）
-                    mode = Mode.VERY_AGGRESSIVE, // 检测严格程度，越激进越容易把静音判断为无语音
-                    silenceDurationMs = 300, // 语音检测结束值
-                    speechDurationMs = 50 // 开始语音的时间门限
-                )
-                // 语音数据数组
-                var getpcmdataarray = ShortArray(2048)
-
-                // 人声判断
-                if (vad.isSpeech(pcmarray)) {
-
-                    // 录像配置器
-                    val recorder = Recorder.Builder()
-                        .setQualitySelector(QualitySelector.from(Quality.HIGHEST)) // 录像质量
+                    // 修复：完善 AudioFormat 配置
+                    val audioFormat = AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)  // 设置编码为 16 位 PCM
+                        .setSampleRate(44100)                         // 设置采样率为 44.1kHz
+                        .setChannelMask(AudioFormat.CHANNEL_IN_MONO)  // 设置为单声道
                         .build()
-                    // 绑定录像控制器
-                    val videoCapture = VideoCapture.withOutput(recorder)
 
-                   // 保存文件
-                    val outputFile = File(
-                        context.getExternalFilesDir(null),
-                        "video_${System.currentTimeMillis()}.mp4"
+                    // 修复：使用完整配置的 AudioFormat
+                    val audioRecord = AudioRecord.Builder()
+                        .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                        .setAudioFormat(audioFormat)                  // 添加必要的音频格式
+                        .setPrivacySensitive(true)
+                        .setContext(context)
+                        .setBufferSizeInBytes(4000)
+                        .build()
+
+                    audioRecord.startRecording()
+                    // 缓冲区
+                    val bufferSize = AudioRecord.getMinBufferSize(
+                        16000,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT
                     )
-                    val outputOptions = FileOutputOptions.Builder(outputFile).build()
+                    // 读取PCM数据存储数组
+                    val pcmarray = ShortArray(4000)
+                    // 语音数据存储池
+                    var speechPcmList = mutableListOf<Short>()
+                    // 从系统级缓冲区读取数据并复制进入软件级缓冲区
+                    val readdatasize = audioRecord.read(pcmarray, 0, 320, pcmarray.size)
 
-                    // 开始录像
-                    val recording = videoCapture.output
-                        .prepareRecording(context,outputOptions)
-                        .start(ContextCompat.getMainExecutor(context)) { recordEvent ->
-                            if (recordEvent is VideoRecordEvent.Finalize) {
-                                Log.e("Recorder","录像保存路径：${outputFile.absolutePath}")
+                    // VAD配置
+                    val vad = VadWebRTC(
+                        sampleRate = SampleRate.SAMPLE_RATE_16K, // 采样率
+                        frameSize = FrameSize.FRAME_SIZE_320, // // 帧大小：320个采样点（约20ms音频）
+                        mode = Mode.VERY_AGGRESSIVE, // 检测严格程度，越激进越容易把静音判断为无语音
+                        silenceDurationMs = 300, // 语音检测结束值
+                        speechDurationMs = 50 // 开始语音的时间门限
+                    )
+
+                    // 缓冲区达到指定指定大小读取PCM数据
+                    while (true) {
+
+
+                        // 人声判断
+                        if (vad.isSpeech(pcmarray)) {
+                            // 人声pcm数据添加进入数据池
+                            speechPcmList.add(pcmarray[pcmarray.size - 1])
+
+                            // 录像配置器
+                            val recorder = Recorder.Builder()
+                                .setQualitySelector(QualitySelector.from(Quality.HIGHEST)) // 录像质量
+                                .build()
+                            // 绑定录像控制器
+                            val videoCapture = VideoCapture.withOutput(recorder)
+
+                            // 保存文件
+                            val outputFile = File(
+                                context.getExternalFilesDir("Ask"),
+                                "video_${System.currentTimeMillis()}.mp4"
+                            )
+                            val outputOptions = FileOutputOptions.Builder(outputFile).build()
+
+                            // 开始录像
+                            val recording = videoCapture.output
+                                .prepareRecording(context, outputOptions)
+                                .start(ContextCompat.getMainExecutor(context)) { recordEvent ->
+                                    if (recordEvent is VideoRecordEvent.Finalize) {
+                                        Log.e("Recorder", "录像保存路径：${outputFile.absolutePath}")
+                                    }
+                                }
+
+
+                        } else {
+
+                            // 创建文件夹，用于发送云端AI
+                            val audioDir = File(
+                                context.getExternalFilesDir("Ask_${System.currentTimeMillis()}"),
+                                "audios"
+                            )
+                            if (!audioDir.exists()) {
+                                audioDir.mkdirs() // 创建文件夹（如果不存在）
                             }
+
+                            // pcm文件,放入Ask文件夹
+                            val pcmFile = File(
+                                context.getExternalFilesDir("Ask"),
+                                "speech_${System.currentTimeMillis()}.pcm"
+                            )
+
+                            // 创建输出流
+                            val outputstream = pcmFile.outputStream()
+
+                            // 存储规则
+                            speechPcmList.forEach { sample ->
+                                outputstream.write((sample.toInt() and 0xFF))
+                                outputstream.write((sample.toInt() shr 8) and 0xFF)
+                            }
+
+                            // 打包mp3
+                            val mp3File = File(context.getExternalFilesDir("Ask"), "speech.mp3")
+
+                            val cmd = arrayOf(
+                                "-f", "s16le",
+                                "-ar", "16000",
+                                "-ac", "1",
+                                "-i", pcmFile.absolutePath,
+                                mp3File.absolutePath
+                            )
+
+                            outputstream.close()
+
+
+                            // 软件级数组清空
+                            speechPcmList.clear()
+
 
                         }
 
-                    if (vad.isSpeech())
-
+                    }
 
                 }
-
-                else {}
-
-
-
-
-            }
-
         }
 
     }

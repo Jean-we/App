@@ -81,5 +81,6 @@ dependencies {
 
     // 媒体库依赖
     implementation("androidx.media:media:1.6.0")
-    implementation ("com.github.gkonovalov.android-vad:webrtc:2.0.9")
+    implementation("com.github.gkonovalov.android-vad:webrtc:2.0.9")
+
 }
