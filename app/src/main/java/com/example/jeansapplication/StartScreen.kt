@@ -58,13 +58,6 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import kotlin.apply
 
-@Preview(name = "StartScreen Preview")
-@Composable
-fun PreviewStartScre() {
-    val navController = rememberNavController() // 仅用于预览，不跳转
-    StartScreen(navController)
-}
-
 
 // app默认启动界面，包含开启动画、默认添加Jetpack Navigation Compose 页面切换管理器
 class MainActivity : ComponentActivity() {
@@ -759,63 +752,64 @@ fun StartScreen(navController: NavHostController) {
         if (showregister.value) {
             Button(
                 onClick = {
+                    navController.navigate("Main")
 
-                    // 打包email/password是否存在于数据库
-                    val json = JSONObject().apply{
-                        put("name",nameText)
-                        put("email",emailText)
-                        put("password",passwordText)
-                        put("code",codeText)
-                    }
-
-                    // 实例
-                    val client = OkHttpClient()
-
-                    // 声明请求体类型
-                    val mediaType = "application/json; charset=utf-8".toMediaType()
-                    // 转化请求体
-                    val body = json.toString().toRequestBody(mediaType)
-
-                    // 创建构建器
-                    val request = Request.Builder()
-                        .url("http://192.168.1.249:2000/register")
-                        .post(body)
-                        .build()
-
-                    // 开启一个协程，分配给另一个线程使用,减少占用
-                    CoroutineScope(Dispatchers.IO).launch {
-                            try {
-                                // 发起通话请求并同步等待服务器响应
-                                val response = client.newCall(request).execute()
-                                val responseText = response.body?.string() ?: "无饭回"
-
-                                // 区分msg和status的值
-                                val jsonObject = JSONObject(responseText)
-                                val msg = jsonObject.getString("msg")
-                                val status = jsonObject.getString("status")
-
-                                // 切回主线程
-                                withContext(Dispatchers.Main){
-                                    // 处理信息
-                                    if (msg=="注册成功") {
-                                        navController.navigate("Main")
-                                    }
-                                    else {
-                                        // 显示错误弹窗
-                                        dialogMessage = responseText
-                                        showDialog = true
-                                }   }
-                            }
-                            catch (e: Exception) {
-                                withContext(Dispatchers.Main) {
-                                    // 显示错误弹窗或Toast提示
-                                    dialogMessage = "请求失败：" + e.message
-                                    showDialog = true
-                                    e.printStackTrace()
-                                }
-                            }
-
-                    }
+//                    // 打包email/password是否存在于数据库
+//                    val json = JSONObject().apply{
+//                        put("name",nameText)
+//                        put("email",emailText)
+//                        put("password",passwordText)
+//                        put("code",codeText)
+//                    }
+//
+//                    // 实例
+//                    val client = OkHttpClient()
+//
+//                    // 声明请求体类型
+//                    val mediaType = "application/json; charset=utf-8".toMediaType()
+//                    // 转化请求体
+//                    val body = json.toString().toRequestBody(mediaType)
+//
+//                    // 创建构建器
+//                    val request = Request.Builder()
+//                        .url("http://192.168.1.249:2000/register")
+//                        .post(body)
+//                        .build()
+//
+//                    // 开启一个协程，分配给另一个线程使用,减少占用
+//                    CoroutineScope(Dispatchers.IO).launch {
+//                            try {
+//                                // 发起通话请求并同步等待服务器响应
+//                                val response = client.newCall(request).execute()
+//                                val responseText = response.body?.string() ?: "无饭回"
+//
+//                                // 区分msg和status的值
+//                                val jsonObject = JSONObject(responseText)
+//                                val msg = jsonObject.getString("msg")
+//                                val status = jsonObject.getString("status")
+//
+//                                // 切回主线程
+//                                withContext(Dispatchers.Main){
+//                                    // 处理信息
+//                                    if (msg=="注册成功") {
+//                                        navController.navigate("Main")
+//                                    }
+//                                    else {
+//                                        // 显示错误弹窗
+//                                        dialogMessage = responseText
+//                                        showDialog = true
+//                                }   }
+//                            }
+//                            catch (e: Exception) {
+//                                withContext(Dispatchers.Main) {
+//                                    // 显示错误弹窗或Toast提示
+//                                    dialogMessage = "请求失败：" + e.message
+//                                    showDialog = true
+//                                    e.printStackTrace()
+//                                }
+//                            }
+//
+//                    }
                 },
                 modifier = Modifier
                     .zIndex(2f)

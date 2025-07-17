@@ -6,6 +6,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.speech.SpeechRecognizer
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.tween
@@ -68,10 +69,21 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
+import androidx.camera.video.FileOutputOptions
+import androidx.camera.video.OutputOptions
+import androidx.camera.video.Quality
+import androidx.camera.video.QualitySelector
+import androidx.camera.video.Recorder
+import androidx.camera.video.VideoCapture
+import androidx.camera.video.VideoRecordEvent
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.LocalConfiguration
 import com.konovalov.vad.webrtc.VadWebRTC
 import com.konovalov.vad.webrtc.config.FrameSize
 import com.konovalov.vad.webrtc.config.Mode
 import com.konovalov.vad.webrtc.config.SampleRate
+import java.io.File
 import kotlin.concurrent.thread
 
 
@@ -143,7 +155,10 @@ fun VideoCalling(navController: NavHostController){
         // 嵌入android原生view
         AndroidView(
             factory = { previewView },// 原声view
-            modifier = Modifier.height(400.dp).width(350.dp).clip(RoundedCornerShape(25.dp)),
+            modifier = Modifier
+                .height(400.dp)
+                .width(350.dp)
+                .clip(RoundedCornerShape(25.dp)),
             update = {
                 // 拿到实例
                 val camara = cameraProviderFuture.get()
@@ -184,13 +199,16 @@ fun VideoCalling(navController: NavHostController){
             audioRecord.startRecording()
             // 缓冲区
             val bufferSize = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT)
-            val pcmarrays= ShortArray(320)
+            // 读取PCM数据存储数组
+            val pcmarray = ShortArray(2048)
 
             // 缓冲区达到指定指定大小读取PCM数据
             while (true) {
-                val readdatasize = audioRecord.read(pcmarrays,0,320)
+                // 从系统级缓冲区读取数据并复制进入软件级缓冲区
+                val readdatasize = audioRecord.read(pcmarray,0,320)
 
                 // VAD配置
+                
                 val vad = VadWebRTC(
                     sampleRate = SampleRate.SAMPLE_RATE_16K, // 采样率
                     frameSize = FrameSize.FRAME_SIZE_320, // // 帧大小：320个采样点（约20ms音频）
@@ -198,14 +216,44 @@ fun VideoCalling(navController: NavHostController){
                     silenceDurationMs = 300, // 语音检测结束值
                     speechDurationMs = 50 // 开始语音的时间门限
                 )
+                // 语音数据数组
+                var getpcmdataarray = ShortArray(2048)
 
-                if (readdatasize == 320) {
-                    if (vad.isSpeech(pcmarrays)) {
-                        // 检测到人声！
-                    } else {
+                // 人声判断
+                if (vad.isSpeech(pcmarray)) {
 
-                    }
+                    // 录像配置器
+                    val recorder = Recorder.Builder()
+                        .setQualitySelector(QualitySelector.from(Quality.HIGHEST)) // 录像质量
+                        .build()
+                    // 绑定录像控制器
+                    val videoCapture = VideoCapture.withOutput(recorder)
+
+                   // 保存文件
+                    val outputFile = File(
+                        context.getExternalFilesDir(null),
+                        "video_${System.currentTimeMillis()}.mp4"
+                    )
+                    val outputOptions = FileOutputOptions.Builder(outputFile).build()
+
+                    // 开始录像
+                    val recording = videoCapture.output
+                        .prepareRecording(context,outputOptions)
+                        .start(ContextCompat.getMainExecutor(context)) { recordEvent ->
+                            if (recordEvent is VideoRecordEvent.Finalize) {
+                                Log.e("Recorder","录像保存路径：${outputFile.absolutePath}")
+                            }
+
+                        }
+
+                    if (vad.isSpeech())
+
+
                 }
+
+                else {}
+
+
 
 
             }
@@ -235,9 +283,13 @@ fun allOn(navController: NavHostController) {
     }
 }
 
-
 @Composable
 fun ChatPage(navController: NavHostController) {
+    // 获取屏幕宽高信息
+    val configuration = LocalConfiguration.current
+    val screenwidth = configuration.screenWidthDp
+    val screenheight = configuration.screenHeightDp
+
     // 路由（页面ID）
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -245,11 +297,21 @@ fun ChatPage(navController: NavHostController) {
 
     // 小窗口弹出动画
     val offsetY by animateDpAsState(
-        targetValue = if (showWindow.value) 310.dp else 800.dp,
+        targetValue = if (showWindow.value) (screenheight-600).dp else screenheight.dp,
         animationSpec = tween(
-            durationMillis = 1100,
+            durationMillis = 900,
             easing = FastOutSlowInEasing
         )
+    )
+
+    // 小窗口透明度
+    val alpha by animateFloatAsState(
+        targetValue = if (showWindow.value) 0.9f else 0f,
+        animationSpec = tween(
+            durationMillis = 900,
+            easing = FastOutSlowInEasing
+        )
+
     )
 
 
@@ -337,13 +399,14 @@ fun ChatPage(navController: NavHostController) {
         }
     }
 
-
     // 创建drawerState
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     ModalNavigationDrawer(
-        modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(),
         drawerState = drawerState,
         gesturesEnabled = true, // 滑动边缘手势
         scrimColor = Color.Black.copy(alpha = 0.52f), // 背景层颜色
@@ -351,10 +414,15 @@ fun ChatPage(navController: NavHostController) {
         drawerContent = {
             // 页面管理器
             Column(modifier = Modifier
-                .fillMaxHeight().width(300.dp).background(Color(0.122f, 0.122f, 0.122f, 1.0f)))
+                .fillMaxHeight()
+                .width(300.dp)
+                .background(Color(0.122f, 0.122f, 0.122f, 1.0f)))
             {
                 ListItem(
-                    modifier = Modifier.background(Color(0.122f, 0.122f, 0.122f, 1.0f)).clickable{},
+                    modifier = Modifier
+                        .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
+                        .padding(WindowInsets.statusBars.asPaddingValues())
+                        .clickable {},
                     colors = ListItemDefaults.colors(Color(0.122f, 0.122f, 0.122f, 1.0f)),
                     headlineContent = {Text(text = "Jean",color = Color(0.937f, 0.937f, 0.937f, 1.0f),
                         fontSize = 20.sp,
@@ -405,6 +473,7 @@ fun ChatPage(navController: NavHostController) {
             // 搜索区域
             Box(
                 modifier = Modifier
+                    .padding(WindowInsets.statusBars.asPaddingValues())
                     .fillMaxWidth()
                     .weight(0.5f)
                     .zIndex(0f)
@@ -420,7 +489,7 @@ fun ChatPage(navController: NavHostController) {
                         .clip(CircleShape)
                         .clickable(
                             enabled = isAvatarFrameClick.value,
-                        ) {scope.launch { drawerState.open() }},
+                        ) { scope.launch { drawerState.open() } },
                     painter = painterResource(id = R.drawable.avatar),
                     contentDescription = "avatar"
 
@@ -537,6 +606,7 @@ fun ChatPage(navController: NavHostController) {
                 Column(
                     modifier = Modifier
                         .offset(y = offsetY)
+                        .alpha(alpha)
                         .clip(RoundedCornerShape(20.dp))
                         .height(500.dp)
                         .width(350.dp)
@@ -661,12 +731,18 @@ fun ChatPage(navController: NavHostController) {
 // 添加联系人页面
 @Composable
 fun AddContacts(navController: NavHostController) {
-    Column(modifier = Modifier.fillMaxSize().background(Color(0.122f, 0.122f, 0.122f, 1.0f))){
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .background(Color(0.122f, 0.122f, 0.122f, 1.0f))){
         // 账户按钮
-        Box(modifier = Modifier.fillMaxWidth().height(100.dp)){
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)){
             Text(text = "Name",
                 textAlign = TextAlign.Center, // 文本局中
-                modifier = Modifier.width(100.dp).height(50.dp))
+                modifier = Modifier
+                    .width(100.dp)
+                    .height(50.dp))
         }
         
     }
