@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import android.speech.SpeechRecognizer
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -70,23 +69,24 @@ import kotlinx.coroutines.launch
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.video.FileOutputOptions
-import androidx.camera.video.OutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.lifecycle.ViewModel
+import androidx.compose.ui.platform.LocalDensity
 import com.konovalov.vad.webrtc.VadWebRTC
 import com.konovalov.vad.webrtc.config.FrameSize
 import com.konovalov.vad.webrtc.config.Mode
 import com.konovalov.vad.webrtc.config.SampleRate
 import java.io.File
-import java.io.OutputStream
 import kotlin.concurrent.thread
 
 
@@ -293,10 +293,7 @@ fun VideoCalling(navController: NavHostController){
                                 "-i", pcmFile.absolutePath,
                                 mp3File.absolutePath
                             )
-
                             outputstream.close()
-
-
                             // 软件级数组清空
                             speechPcmList.clear()
 
@@ -333,6 +330,10 @@ fun allOn(navController: NavHostController) {
 
 @Composable
 fun ChatPage(navController: NavHostController) {
+    // 获取当前屏幕密度对象
+    val density = LocalDensity.current
+    // 聊天区域高度信息
+    val chatAreaHeightPx = remember { mutableStateOf(0)}
     // 获取屏幕宽高信息
     val configuration = LocalConfiguration.current
     val screenwidth = configuration.screenWidthDp
@@ -388,30 +389,53 @@ fun ChatPage(navController: NavHostController) {
 
 
 
+
     // 一体 聊天卡片
     @Composable
     fun ChatCard() {
+        // 聊天框区域宽高
+        val  chatAreaWidth = remember { mutableStateOf(0) }
+        val chatAreaHeight = remember { mutableStateOf(0) }
+        // 聊天区域高度(已转化Dp)
+        val chatAreaHeightDp = with(density){chatAreaHeightPx.value.toDp()}
 
         Column(modifier = Modifier
-            .fillMaxWidth()
-            .height(70.dp)) {
-
+            .padding(WindowInsets.statusBars.asPaddingValues())
+            .fillMaxSize()
+            .onGloballyPositioned{ coordinator->
+                // 聊天区域高度
+                val chatAreaHeightPxO = coordinator.size.height
+                chatAreaHeightPx.value = chatAreaHeightPxO
+            }
+        ) {
+            // 聊天区域宽、高度px转化dp
+            val ConversionChatBoxWidth = with(density) {chatAreaWidth.value.toDp()}
+            val ConversionChatBoxHeight = with(density) {chatAreaHeight.value.toDp()}
+            // 聊天区域宽高度
+            val chatBoxWidth = ConversionChatBoxWidth * 0.7f
+            val chatBoxHeight = ConversionChatBoxHeight * 1f
             Row(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .height(chatAreaHeightDp*0.1f)
+                    .onGloballyPositioned { coordinator ->
+                        val chatAreaWidthO = coordinator.size.width // 获取组件宽度PX
+                        chatAreaWidth.value = chatAreaWidthO
+                        val chatAreaHeightO = coordinator.size.width // 获取组件高度PX
+                        chatAreaHeight.value = chatAreaHeightO
+                    }
                     .clickable(enabled = isContactsClick.value) {}) {
                 // 头像框
                 Box(
                     modifier = Modifier
-                        .height(80.dp)
-                        .width(100.dp)
+                        .height(chatAreaHeightDp*0.095f)
+                        .width(ConversionChatBoxWidth*0.195f)
                 ) {
                     Image(
                         modifier = Modifier
                             .padding(start = 15.dp)
-                            .height(60.dp)
-                            .width(60.dp)
                             .clip(RoundedCornerShape(11.dp)),
+                        contentScale = ContentScale.Crop,
                         contentDescription = "avatar",
                         painter = painterResource(id = R.drawable.testavatar)
                     )
@@ -420,12 +444,13 @@ fun ChatPage(navController: NavHostController) {
                 // 聊天框
                 Box(
                     modifier = Modifier
-                        .width(270.dp)
-                        .height(60.dp)
+                        .padding(start = 20.dp)
+                        .width(chatBoxWidth)
+                        .height(chatBoxHeight)
                         .clip(RoundedCornerShape(22.dp))
                         .background(
                             Color(0.161f, 0.161f, 0.161f, 1.0f)
-                        )
+                        ),
                 ) {
                     // 信息
                     Text(
@@ -527,18 +552,17 @@ fun ChatPage(navController: NavHostController) {
                     .zIndex(0f)
             )
             {
-
                 // 个人头像框及选项
                 Image(
                     modifier = Modifier
-                        .height(50.dp)
-                        .width(50.dp)
+                        .size(60.dp)
                         .padding(start = 10.dp, top = 10.dp)
                         .clip(CircleShape)
                         .clickable(
                             enabled = isAvatarFrameClick.value,
                         ) { scope.launch { drawerState.open() } },
                     painter = painterResource(id = R.drawable.avatar),
+                    contentScale =ContentScale.Crop,
                     contentDescription = "avatar"
 
                 )
@@ -551,6 +575,10 @@ fun ChatPage(navController: NavHostController) {
                     .fillMaxWidth()
                     .weight(4f)
                     .zIndex(0f)
+                    .onGloballyPositioned { coordinator ->
+                        val showChatArea = coordinator.size.height
+                        chatAreaHeightPx.value = showChatArea
+                    }
             )
             {
                 ChatCard()
@@ -613,7 +641,7 @@ fun ChatPage(navController: NavHostController) {
                 // 添加图标
                 Icon(
                     modifier = Modifier
-                        .width(200.dp)
+                        .width(250.dp)
                         .height(50.dp)
                         .scale(scale3)
                         .clickable(
@@ -647,7 +675,7 @@ fun ChatPage(navController: NavHostController) {
                 modifier = Modifier
                     .zIndex(2f)
                     .height(500.dp)
-                    .width(400.dp)
+                    .width(screenwidth.dp)
                     .padding(bottom = 30.dp)
             ) {
 
@@ -657,7 +685,7 @@ fun ChatPage(navController: NavHostController) {
                         .alpha(alpha)
                         .clip(RoundedCornerShape(20.dp))
                         .height(500.dp)
-                        .width(350.dp)
+                        .width((screenwidth - 30).dp)
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .align(Alignment.Center)
                         .padding(bottom = 30.dp),
@@ -796,24 +824,3 @@ fun AddContacts(navController: NavHostController) {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
