@@ -334,6 +334,11 @@ fun ChatPage(navController: NavHostController) {
     val density = LocalDensity.current
     // 聊天区域高度信息
     val chatAreaHeightPx = remember { mutableStateOf(0)}
+    // 聊天框区域宽高
+    val  chatAreaWidth = remember { mutableStateOf(0) }
+    val chatAreaHeight = remember { mutableStateOf(0) }
+    // 聊天区域高度(已转化Dp)
+    val chatAreaHeightDp = with(density){chatAreaHeightPx.value.toDp()}
     // 获取屏幕宽高信息
     val configuration = LocalConfiguration.current
     val screenwidth = configuration.screenWidthDp
@@ -393,11 +398,7 @@ fun ChatPage(navController: NavHostController) {
     // 一体 聊天卡片
     @Composable
     fun ChatCard() {
-        // 聊天框区域宽高
-        val  chatAreaWidth = remember { mutableStateOf(0) }
-        val chatAreaHeight = remember { mutableStateOf(0) }
-        // 聊天区域高度(已转化Dp)
-        val chatAreaHeightDp = with(density){chatAreaHeightPx.value.toDp()}
+
 
         Column(modifier = Modifier
             .padding(WindowInsets.statusBars.asPaddingValues())
@@ -416,6 +417,8 @@ fun ChatPage(navController: NavHostController) {
             val chatBoxHeight = ConversionChatBoxHeight * 1f
             Row(
                 modifier = Modifier
+                    .padding(start = 5.dp, end = 5.dp)
+                    .clip(RoundedCornerShape(20.dp))
                     .fillMaxWidth()
                     .height(chatAreaHeightDp*0.1f)
                     .onGloballyPositioned { coordinator ->
@@ -433,7 +436,7 @@ fun ChatPage(navController: NavHostController) {
                 ) {
                     Image(
                         modifier = Modifier
-                            .padding(start = 15.dp)
+                            .padding(start = 17.dp)
                             .clip(RoundedCornerShape(11.dp)),
                         contentScale = ContentScale.Crop,
                         contentDescription = "avatar",
@@ -444,7 +447,7 @@ fun ChatPage(navController: NavHostController) {
                 // 聊天框
                 Box(
                     modifier = Modifier
-                        .padding(start = 20.dp)
+                        .padding(start = 25.dp)
                         .width(chatBoxWidth)
                         .height(chatBoxHeight)
                         .clip(RoundedCornerShape(22.dp))
@@ -481,7 +484,7 @@ fun ChatPage(navController: NavHostController) {
             .fillMaxWidth()
             .fillMaxHeight(),
         drawerState = drawerState,
-        gesturesEnabled = true, // 滑动边缘手势
+        gesturesEnabled = drawerState.isOpen, // 滑动边缘手势
         scrimColor = Color.Black.copy(alpha = 0.52f), // 背景层颜色
         // 我的小页面显示内容
         drawerContent = {
@@ -555,8 +558,8 @@ fun ChatPage(navController: NavHostController) {
                 // 个人头像框及选项
                 Image(
                     modifier = Modifier
-                        .size(60.dp)
-                        .padding(start = 10.dp, top = 10.dp)
+                        .size(with(density){chatAreaHeightPx.value.toDp()*0.08f})
+                        .padding(start = 17.dp, top = 15.dp)
                         .clip(CircleShape)
                         .clickable(
                             enabled = isAvatarFrameClick.value,
@@ -674,21 +677,32 @@ fun ChatPage(navController: NavHostController) {
             Box(
                 modifier = Modifier
                     .zIndex(2f)
-                    .height(500.dp)
+                    .height((screenheight*0.53f).dp)
                     .width(screenwidth.dp)
                     .padding(bottom = 30.dp)
             ) {
+                // 小窗口宽高信息
+                val smallWindowWidthPx = remember {mutableStateOf(0)}
+                val smallWindowHeightPx = remember {mutableStateOf(0)}
+
 
                 Column(
                     modifier = Modifier
                         .offset(y = offsetY)
                         .alpha(alpha)
                         .clip(RoundedCornerShape(20.dp))
-                        .height(500.dp)
+                        .height((screenheight*0.53f).dp)
                         .width((screenwidth - 30).dp)
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .align(Alignment.Center)
-                        .padding(bottom = 30.dp),
+                        .padding(bottom = 30.dp)
+                        .onGloballyPositioned{ coordinate->
+                            val width  = coordinate.size.width
+                            smallWindowWidthPx.value = width
+                            val height  = coordinate.size.height
+                            smallWindowHeightPx.value = height
+                        }
+
                 ) {
 
 
@@ -697,8 +711,8 @@ fun ChatPage(navController: NavHostController) {
                         modifier = Modifier
                             .padding(top = 15.dp, start = 15.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .width(320.dp)
-                            .height(100.dp)
+                            .width(with(density){smallWindowWidthPx.value.toDp()*0.9f})
+                            .height(with(density){smallWindowHeightPx.value.toDp()*0.25f})
                             .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                             .clickable(enabled = true) {}
                     ) {
@@ -747,8 +761,8 @@ fun ChatPage(navController: NavHostController) {
                         modifier = Modifier
                             .padding(top = 15.dp, start = 15.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .width(320.dp)
-                            .height(100.dp)
+                            .width(with(density){smallWindowWidthPx.value.toDp()*0.9f})
+                            .height(with(density){smallWindowHeightPx.value.toDp()*0.25f})
                             .background(Color(0.122f, 0.122f, 0.122f, 0.102f))
                             .clickable(enabled = true) {
                                 navController.navigate("AllOn")
