@@ -74,10 +74,12 @@ import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
@@ -359,13 +361,21 @@ fun ChatPage(navController: NavHostController) {
     )
 
     // 小窗口透明度
-    val alpha by animateFloatAsState(
+    val smallWindowAlpha by animateFloatAsState(
         targetValue = if (showWindow.value) 0.9f else 0f,
         animationSpec = tween(
             durationMillis = 900,
             easing = FastOutSlowInEasing
         )
 
+    )
+    // 阴影图层渐变
+    val alpha by animateFloatAsState(
+        targetValue = if (showWindow.value) 0.9f else 0f,
+        animationSpec = tween(
+            durationMillis = 900,
+            easing = FastOutSlowInEasing
+        )
     )
 
 
@@ -391,6 +401,9 @@ fun ChatPage(navController: NavHostController) {
     // 聊天按钮是否可以点击变量
     val chatBtIsClick by remember { mutableStateOf(true) }
 
+    // 搜索区域宽高
+    val searchAreaWidthPx = remember {mutableStateOf(0)}
+    val searchAreaHeightPx = remember {mutableStateOf(0)}
 
 
 
@@ -417,7 +430,7 @@ fun ChatPage(navController: NavHostController) {
             val chatBoxHeight = ConversionChatBoxHeight * 1f
             Row(
                 modifier = Modifier
-                    .padding(start = 5.dp, end = 5.dp)
+                    .padding(start = 4.dp, end =4.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .fillMaxWidth()
                     .height(chatAreaHeightDp*0.1f)
@@ -436,6 +449,8 @@ fun ChatPage(navController: NavHostController) {
                 ) {
                     Image(
                         modifier = Modifier
+                            .height(chatAreaHeightDp*0.095f)
+                            .width(ConversionChatBoxWidth*0.195f)
                             .padding(start = 17.dp)
                             .clip(RoundedCornerShape(11.dp)),
                         contentScale = ContentScale.Crop,
@@ -553,6 +568,12 @@ fun ChatPage(navController: NavHostController) {
                     .fillMaxWidth()
                     .weight(0.5f)
                     .zIndex(0f)
+                    .onGloballyPositioned{ coordinator->
+                        val widthPx = coordinator.size.width
+                        searchAreaWidthPx.value = widthPx
+                        val heightPx = coordinator.size.height
+                        searchAreaHeightPx.value = heightPx
+                    }
             )
             {
                 // 个人头像框及选项
@@ -569,6 +590,35 @@ fun ChatPage(navController: NavHostController) {
                     contentDescription = "avatar"
 
                 )
+
+                // 音乐切换卡
+                Box(
+                    modifier = Modifier
+                        .padding(start = with(density){searchAreaWidthPx.value.toDp()}*0.214f,top = with(density){searchAreaHeightPx.value.toDp()}*0.32f)
+                        .clickable() {}
+                        .height(with(density){chatAreaHeightPx.value.toDp()*0.05f})
+                        .width(with(density){chatAreaHeightPx.value.toDp()*0.1f})
+                        .border(
+                            width = 2.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(Color.Magenta, Color.Cyan,Color.Unspecified, Color.Red,Color.LightGray,Color.Green,
+                                    Color.Blue,Color.Yellow)
+                            ),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .background(
+                            color = Color.Black, // 可选，控制边框内颜色
+                            shape = RoundedCornerShape(20.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ){
+                    Text(
+                        text = "Music",
+                        textAlign = TextAlign.Center,
+                        color = Color(1f, 1f, 1f, 1f),
+                        fontSize = 15.sp
+                    )
+                }
             }
 
 
@@ -666,7 +716,8 @@ fun ChatPage(navController: NavHostController) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0f, 0f, 0f, 0.5f)) // 黑色半透明遮罩层
+                    .alpha(alpha)
+                    .background(Color(0f, 0f, 0f, 1f))
                     .padding(WindowInsets.systemBars.asPaddingValues())
                     .zIndex(1f)
             )
@@ -689,7 +740,7 @@ fun ChatPage(navController: NavHostController) {
                 Column(
                     modifier = Modifier
                         .offset(y = offsetY)
-                        .alpha(alpha)
+                        .alpha(smallWindowAlpha)
                         .clip(RoundedCornerShape(20.dp))
                         .height((screenheight*0.53f).dp)
                         .width((screenwidth - 30).dp)
