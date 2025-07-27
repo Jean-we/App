@@ -77,6 +77,8 @@ import androidx.camera.video.VideoRecordEvent
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
@@ -84,6 +86,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.constraintlayout.compose.Dimension
 import com.konovalov.vad.webrtc.VadWebRTC
 import com.konovalov.vad.webrtc.config.FrameSize
 import com.konovalov.vad.webrtc.config.Mode
@@ -330,6 +335,7 @@ fun allOn(navController: NavHostController) {
     }
 }
 
+
 @Composable
 fun ChatPage(navController: NavHostController) {
     // 获取当前屏幕密度对象
@@ -404,9 +410,6 @@ fun ChatPage(navController: NavHostController) {
     // 搜索区域宽高
     val searchAreaWidthPx = remember {mutableStateOf(0)}
     val searchAreaHeightPx = remember {mutableStateOf(0)}
-
-
-
 
     // 一体 聊天卡片
     @Composable
@@ -594,29 +597,27 @@ fun ChatPage(navController: NavHostController) {
                 // 音乐切换卡
                 Box(
                     modifier = Modifier
-                        .padding(start = with(density){searchAreaWidthPx.value.toDp()}*0.214f,top = with(density){searchAreaHeightPx.value.toDp()}*0.32f)
+                        .padding(start = with(density){searchAreaWidthPx.value.toDp()}*0.18f,top = with(density){searchAreaHeightPx.value.toDp()}*0.32f)
                         .clickable() {}
                         .height(with(density){chatAreaHeightPx.value.toDp()*0.05f})
                         .width(with(density){chatAreaHeightPx.value.toDp()*0.1f})
-                        .border(
-                            width = 2.dp,
-                            brush = Brush.linearGradient(
-                                colors = listOf(Color.Magenta, Color.Cyan,Color.Unspecified, Color.Red,Color.LightGray,Color.Green,
-                                    Color.Blue,Color.Yellow)
-                            ),
-                            shape = RoundedCornerShape(20.dp)
-                        )
+                        .clip(RoundedCornerShape(20.dp))
                         .background(
-                            color = Color.Black, // 可选，控制边框内颜色
-                            shape = RoundedCornerShape(20.dp)
+                            color = Color(0.161f, 0.161f, 0.161f, 1.0f), // 可选，控制边框内颜色
                         ),
-                    contentAlignment = Alignment.Center
+
+                    contentAlignment = Alignment.Center,
+
+
+
+
                 ){
                     Text(
                         text = "Music",
                         textAlign = TextAlign.Center,
                         color = Color(1f, 1f, 1f, 1f),
-                        fontSize = 15.sp
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -709,7 +710,6 @@ fun ChatPage(navController: NavHostController) {
 
             }
         }
-
         // 阴影图层
         if (isbackgroundshadow.value) {
 
@@ -765,7 +765,7 @@ fun ChatPage(navController: NavHostController) {
                             .width(with(density){smallWindowWidthPx.value.toDp()*0.9f})
                             .height(with(density){smallWindowHeightPx.value.toDp()*0.25f})
                             .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
-                            .clickable(enabled = true) {}
+                            .clickable(enabled = true) {navController.navigate("AddContacts")}
                     ) {
 
                         // 圆形图标显示
@@ -862,8 +862,10 @@ fun ChatPage(navController: NavHostController) {
             isbackgroundshadow.value = true
         }
 
+
     }
     }
+
 }
 
 
@@ -872,20 +874,105 @@ fun ChatPage(navController: NavHostController) {
 // 添加联系人页面
 @Composable
 fun AddContacts(navController: NavHostController) {
-    Column(modifier = Modifier
+    Box(modifier = Modifier
         .fillMaxSize()
         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))){
-        // 账户按钮
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)){
-            Text(text = "Name",
-                textAlign = TextAlign.Center, // 文本局中
-                modifier = Modifier
-                    .width(100.dp)
-                    .height(50.dp))
-        }
-        
+        // 邮件地址文本内容
+        val addContactsContent = remember {mutableStateOf("")}
+        // 名字文本内容
+        val nameContent = remember { mutableStateOf("") }
+        // 屏幕信息
+        val density = LocalDensity.current
+        // 获取屏幕宽高信息
+        val configuration = LocalConfiguration.current
+        val screenwidth = configuration.screenWidthDp
+        val screenheight = configuration.screenHeightDp
+        // 输入邮件地址说明
+        Text(
+            text = "Name:",
+            modifier = Modifier
+                .width((screenwidth*0.4f).dp)
+                .height(85.dp)
+                .offset(x = (screenwidth*0.06f).dp , y = (screenheight*0.124f).dp ),
+            color = Color(0.937f, 0.937f, 0.937f, 1.0f),
+            fontSize = 30.sp,
+            textAlign = TextAlign.Left
+        )
+
+        // 邮件地址输入框
+        OutlinedTextField(
+            value = addContactsContent.value, // 当前输入框显示内容
+            onValueChange = { addContactsContent.value = it }, // 添加空实现防止报错
+            textStyle = TextStyle(
+                color = Color(
+                    0.937f,
+                    0.937f,
+                    0.937f,
+                    1.0f),
+
+                ),
+            label = { Text(text = "ENTER NAME", fontSize = 14.sp, color = Color(
+                0.937f,
+                0.937f,
+                0.937f,
+                1.0f
+            ), fontWeight = FontWeight.Bold
+            ) }, // 上方显示标签
+            shape = RoundedCornerShape(15.dp), // 圆觉
+            placeholder = { Text(
+                text = "Enter Your EmailAddress",
+                color = Color(0.678f, 0.843f, 0.561f, 1.0f)
+            ) }, // 提示文本
+            singleLine = true, // 只允许输入一行
+            enabled = true, // 允许输入
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            modifier = Modifier.width((screenwidth*0.6f).dp).height(70.dp).offset(x = (screenwidth*0.3f).dp, y = (screenheight*0.1f).dp)
+           )
+
+
+        // 输入名字说明
+        Text(
+            text = "Email:",
+            modifier = Modifier
+                .width((screenwidth*0.4f).dp)
+                .height(85.dp)
+                .offset(x = (screenwidth*0.06f).dp , y = (screenheight*0.224f).dp ),
+            color = Color(0.937f, 0.937f, 0.937f, 1.0f),
+            fontSize = 30.sp,
+            textAlign = TextAlign.Left
+        )
+
+        // 邮件地址输入框
+        OutlinedTextField(
+            value = nameContent.value, // 当前输入框显示内容
+            onValueChange = { nameContent.value = it }, // 添加空实现防止报错
+            textStyle = TextStyle(
+                color = Color(
+                    0.937f,
+                    0.937f,
+                    0.937f,
+                    1.0f),
+
+                ),
+            label = { Text(text = "EMAIL ADDRESS", fontSize = 14.sp, color = Color(
+                0.937f,
+                0.937f,
+                0.937f,
+                1.0f
+            ), fontWeight = FontWeight.Bold
+            ) }, // 上方显示标签
+            shape = RoundedCornerShape(15.dp), // 圆觉
+            placeholder = { Text(
+                text = "Enter Your EmailAddress",
+                color = Color(0.678f, 0.843f, 0.561f, 1.0f)
+            ) }, // 提示文本
+            singleLine = true, // 只允许输入一行
+            enabled = true, // 允许输入
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            modifier = Modifier.width((screenwidth*0.6f).dp).height(70.dp).offset(x = (screenwidth*0.3f).dp, y = (screenheight*0.2f).dp)
+        )
     }
 
 }
+
+

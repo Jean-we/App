@@ -32,13 +32,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.zIndex
-import androidx.constraintlayout.compose.ConstrainScope
-import androidx.constraintlayout.compose.ConstrainedLayoutReference
-import androidx.constraintlayout.compose.ConstraintLayoutScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.ActivityCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -52,10 +47,6 @@ import org.json.JSONObject
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
-import android.Manifest
-import android.content.pm.PackageManager
-import android.widget.Toast
-import androidx.core.content.ContextCompat
 import kotlin.apply
 
 
@@ -498,7 +489,7 @@ fun StartScreen(navController: NavHostController) {
                         horizontalBias = 0.4f
                         // 竖向位置比例
                         verticalBias = 0.2f
-                        // 宽度占父布局宽度的65%
+                        // 宽度占父布局宽度的66%
                         width = Dimension.percent(0.66f)
                         // 高度固定70dp
                         height = Dimension.value(70.dp)
