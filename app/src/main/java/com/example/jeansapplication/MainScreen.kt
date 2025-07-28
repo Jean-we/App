@@ -74,27 +74,26 @@ import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.constraintlayout.compose.Dimension
+import androidx.compose.ui.text.input.ImeAction
 import com.konovalov.vad.webrtc.VadWebRTC
 import com.konovalov.vad.webrtc.config.FrameSize
 import com.konovalov.vad.webrtc.config.Mode
 import com.konovalov.vad.webrtc.config.SampleRate
 import java.io.File
 import kotlin.concurrent.thread
+
 
 
 @Composable
@@ -879,98 +878,54 @@ fun AddContacts(navController: NavHostController) {
         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))){
         // 邮件地址文本内容
         val addContactsContent = remember {mutableStateOf("")}
-        // 名字文本内容
-        val nameContent = remember { mutableStateOf("") }
         // 屏幕信息
         val density = LocalDensity.current
         // 获取屏幕宽高信息
         val configuration = LocalConfiguration.current
         val screenwidth = configuration.screenWidthDp
         val screenheight = configuration.screenHeightDp
-        // 输入邮件地址说明
-        Text(
-            text = "Name:",
-            modifier = Modifier
-                .width((screenwidth*0.4f).dp)
-                .height(85.dp)
-                .offset(x = (screenwidth*0.06f).dp , y = (screenheight*0.124f).dp ),
-            color = Color(0.937f, 0.937f, 0.937f, 1.0f),
-            fontSize = 30.sp,
-            textAlign = TextAlign.Left
-        )
 
         // 邮件地址输入框
-        OutlinedTextField(
-            value = addContactsContent.value, // 当前输入框显示内容
-            onValueChange = { addContactsContent.value = it }, // 添加空实现防止报错
-            textStyle = TextStyle(
-                color = Color(
-                    0.937f,
-                    0.937f,
-                    0.937f,
-                    1.0f),
+        BasicTextField(
+            value = addContactsContent.value,
+            onValueChange = {addContactsContent.value = it},
+            modifier = Modifier.width((screenwidth*0.9f).dp).height(40.dp).offset(x = (screenwidth*0.05f).dp, y = (screenheight*0.07f).dp).background(Color.White,RoundedCornerShape(6.dp)).padding(start = 18.dp),
+            singleLine = true, // 单行输入
+            textStyle = TextStyle(color = Color.Black, textAlign = TextAlign.Start, fontSize = 13.sp, fontWeight = FontWeight.Bold), // 输入文本颜色
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search), // 设置软键盘为搜索
+            keyboardActions = KeyboardActions(
+                onSearch = {
+                    Log.d("AddContacts","执行搜索用户操作") // 打印调试日志
+                }
+            ),
+            decorationBox = { innerTextField ->// 自定义ui
+                Box(modifier = Modifier.fillMaxSize(),contentAlignment = Alignment.CenterStart) {
+                    if (addContactsContent.value.isEmpty()) {
+                        // 搜索图标
+                        Icon(
+                            modifier = Modifier
+                                .width(30.dp)
+                                .height(20.dp),
+                            painter = painterResource(id = R.drawable.searchlcon),
+                            tint = Color.Unspecified,
+                            contentDescription = "Create" // 无障碍描述
+                        )
 
-                ),
-            label = { Text(text = "ENTER NAME", fontSize = 14.sp, color = Color(
-                0.937f,
-                0.937f,
-                0.937f,
-                1.0f
-            ), fontWeight = FontWeight.Bold
-            ) }, // 上方显示标签
-            shape = RoundedCornerShape(15.dp), // 圆觉
-            placeholder = { Text(
-                text = "Enter Your EmailAddress",
-                color = Color(0.678f, 0.843f, 0.561f, 1.0f)
-            ) }, // 提示文本
-            singleLine = true, // 只允许输入一行
-            enabled = true, // 允许输入
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.width((screenwidth*0.6f).dp).height(70.dp).offset(x = (screenwidth*0.3f).dp, y = (screenheight*0.1f).dp)
-           )
-
-
-        // 输入名字说明
-        Text(
-            text = "Email:",
-            modifier = Modifier
-                .width((screenwidth*0.4f).dp)
-                .height(85.dp)
-                .offset(x = (screenwidth*0.06f).dp , y = (screenheight*0.224f).dp ),
-            color = Color(0.937f, 0.937f, 0.937f, 1.0f),
-            fontSize = 30.sp,
-            textAlign = TextAlign.Left
+                        Text(
+                            text = "Who is got you so hooked??",
+                            color = Color.Black,
+                            textAlign = TextAlign.Start,
+                            modifier = Modifier.padding(start = 40.dp),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                    innerTextField() // 渲染内容
+                }
+            }
         )
 
-        // 邮件地址输入框
-        OutlinedTextField(
-            value = nameContent.value, // 当前输入框显示内容
-            onValueChange = { nameContent.value = it }, // 添加空实现防止报错
-            textStyle = TextStyle(
-                color = Color(
-                    0.937f,
-                    0.937f,
-                    0.937f,
-                    1.0f),
 
-                ),
-            label = { Text(text = "EMAIL ADDRESS", fontSize = 14.sp, color = Color(
-                0.937f,
-                0.937f,
-                0.937f,
-                1.0f
-            ), fontWeight = FontWeight.Bold
-            ) }, // 上方显示标签
-            shape = RoundedCornerShape(15.dp), // 圆觉
-            placeholder = { Text(
-                text = "Enter Your EmailAddress",
-                color = Color(0.678f, 0.843f, 0.561f, 1.0f)
-            ) }, // 提示文本
-            singleLine = true, // 只允许输入一行
-            enabled = true, // 允许输入
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            modifier = Modifier.width((screenwidth*0.6f).dp).height(70.dp).offset(x = (screenwidth*0.3f).dp, y = (screenheight*0.2f).dp)
-        )
     }
 
 }
