@@ -74,6 +74,8 @@ import androidx.camera.video.QualitySelector
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.text.BasicTextField
@@ -81,6 +83,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
@@ -496,6 +500,9 @@ fun ChatPage(navController: NavHostController) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // 侧边栏高度信息
+    val sidebarHeightPx = remember { mutableStateOf(0) }
+
     ModalNavigationDrawer(
         modifier = Modifier
             .fillMaxWidth()
@@ -506,15 +513,31 @@ fun ChatPage(navController: NavHostController) {
         // 我的小页面显示内容
         drawerContent = {
             // 页面管理器
-            Column(modifier = Modifier
+            Column(
+                modifier = Modifier
                 .fillMaxHeight()
                 .width(300.dp)
-                .background(Color(0.122f, 0.122f, 0.122f, 1.0f)))
+                .onGloballyPositioned{ coordinate->
+                    val height = coordinate.size.height
+                    sidebarHeightPx.value = height
+                }
+                .background(Color(0.122f, 0.122f, 0.122f, 1.0f)),
+                verticalArrangement = Arrangement.spacedBy(5.dp))
             {
                 ListItem(
                     modifier = Modifier
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
+                        .fillMaxWidth()
+                        .height((with(density) {sidebarHeightPx.value.toDp()})*0.15f)
                         .padding(WindowInsets.statusBars.asPaddingValues())
+                        .drawBehind{
+                            drawLine(
+                                color = Color.Gray, // 先用红色测试看能不能显示
+                                start = Offset(0f, size.height),
+                                end = Offset(size.width, size.height),
+                                strokeWidth = 3f // 这里你原来写错了
+                            )
+                        }
                         .clickable {},
                     colors = ListItemDefaults.colors(Color(0.122f, 0.122f, 0.122f, 1.0f)),
                     headlineContent = {Text(text = "Jean",color = Color(0.937f, 0.937f, 0.937f, 1.0f),
@@ -538,6 +561,22 @@ fun ChatPage(navController: NavHostController) {
                         )
                     },
                     tonalElevation = 15.dp
+
+                )
+
+                // 查看联系人选项
+                ListItem(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height((with(density) {sidebarHeightPx.value.toDp()})*0.1f)
+                        .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
+                        .clickable() {},
+                    headlineContent = {Text(text = "Contacts List", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)},
+                    tonalElevation = 18.dp,
+                    colors = ListItemDefaults.colors(Color(0.122f, 0.122f, 0.122f, 1.0f)),
+
+
+
 
                 )
 
@@ -568,7 +607,7 @@ fun ChatPage(navController: NavHostController) {
                 modifier = Modifier
                     .padding(WindowInsets.statusBars.asPaddingValues())
                     .fillMaxWidth()
-                    .weight(0.5f)
+                    .weight(0.8f)
                     .zIndex(0f)
                     .onGloballyPositioned{ coordinator->
                         val widthPx = coordinator.size.width
@@ -596,7 +635,7 @@ fun ChatPage(navController: NavHostController) {
                 // 音乐切换卡
                 Box(
                     modifier = Modifier
-                        .padding(start = with(density){searchAreaWidthPx.value.toDp()}*0.18f,top = with(density){searchAreaHeightPx.value.toDp()}*0.32f)
+                        .padding(start = with(density){searchAreaWidthPx.value.toDp()}*0.18f,top = with(density){searchAreaHeightPx.value.toDp()}*0.18f)
                         .clickable() {}
                         .height(with(density){chatAreaHeightPx.value.toDp()*0.05f})
                         .width(with(density){chatAreaHeightPx.value.toDp()*0.1f})
@@ -621,11 +660,19 @@ fun ChatPage(navController: NavHostController) {
                 }
             }
 
-
+            Spacer(modifier = Modifier.height(2.dp)) // 间隔
             // 聊天框显示区域
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .drawBehind{
+                        drawLine(
+                            color = Color.Gray, // 先用红色测试看能不能显示
+                            start = Offset(50f, 0f),
+                            end = Offset((size.width-50), 0f),
+                            strokeWidth = 3f // 这里你原来写错了
+                        )
+                    }
                     .weight(4f)
                     .zIndex(0f)
                     .onGloballyPositioned { coordinator ->
@@ -889,19 +936,19 @@ fun AddContacts(navController: NavHostController) {
         BasicTextField(
             value = addContactsContent.value,
             onValueChange = {addContactsContent.value = it},
-            modifier = Modifier.width((screenwidth*0.9f).dp).height(40.dp).offset(x = (screenwidth*0.05f).dp, y = (screenheight*0.07f).dp).background(Color.White,RoundedCornerShape(6.dp)).padding(start = 18.dp),
+            modifier = Modifier.width((screenwidth*0.9f).dp).height(40.dp).offset(x = (screenwidth*0.05f).dp, y = (screenheight*0.07f).dp).background(Color.White,RoundedCornerShape(6.dp)).padding(start = 10.dp),
             singleLine = true, // 单行输入
             textStyle = TextStyle(color = Color.Black, textAlign = TextAlign.Start, fontSize = 13.sp, fontWeight = FontWeight.Bold), // 输入文本颜色
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search), // 设置软键盘为搜索
             keyboardActions = KeyboardActions(
                 onSearch = {
-                    Log.d("AddContacts","执行搜索用户操作") // 打印调试日志
+
                 }
             ),
             decorationBox = { innerTextField ->// 自定义ui
                 Box(modifier = Modifier.fillMaxSize(),contentAlignment = Alignment.CenterStart) {
                     if (addContactsContent.value.isEmpty()) {
-                        // 搜索图标
+                        // 搜索图标dwd
                         Icon(
                             modifier = Modifier
                                 .width(30.dp)
