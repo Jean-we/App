@@ -81,6 +81,12 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
@@ -813,7 +819,6 @@ fun ChatPage(navController: NavHostController) {
                             .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                             .clickable(enabled = true) {navController.navigate("AddContacts")}
                     ) {
-
                         // 圆形图标显示
                         Icon(
                             modifier = Modifier
@@ -948,12 +953,12 @@ fun AddContacts(navController: NavHostController) {
             decorationBox = { innerTextField ->// 自定义ui
                 Box(modifier = Modifier.fillMaxSize(),contentAlignment = Alignment.CenterStart) {
                     if (addContactsContent.value.isEmpty()) {
-                        // 搜索图标dwd
+                        // 搜索图标
                         Icon(
                             modifier = Modifier
                                 .width(30.dp)
                                 .height(20.dp),
-                            painter = painterResource(id = R.drawable.searchlcon),
+                           imageVector = Icons.Default.Search,
                             tint = Color.Unspecified,
                             contentDescription = "Create" // 无障碍描述
                         )
@@ -962,7 +967,7 @@ fun AddContacts(navController: NavHostController) {
                             text = "Who is got you so hooked??",
                             color = Color.Black,
                             textAlign = TextAlign.Start,
-                            modifier = Modifier.padding(start = 40.dp),
+                            modifier = Modifier.padding(start = 30.dp),
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
@@ -971,6 +976,12 @@ fun AddContacts(navController: NavHostController) {
                 }
             }
         )
+
+        // 返回按钮
+        IconButton(onClick = {navController.navigate("Chat")},modifier = Modifier.size((screenwidth*0.2).dp).align(Alignment.TopStart).offset(x = 1.dp, y = 1.dp), content = {
+            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+        })
+
 
 
     }
