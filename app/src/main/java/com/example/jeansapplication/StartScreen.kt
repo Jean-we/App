@@ -26,7 +26,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
@@ -119,6 +125,9 @@ fun StartScreen(navController: NavHostController) {
     var showDialog by remember { mutableStateOf(false) }
     var dialogMessage by remember { mutableStateOf("") }
 
+    // 返回按钮
+    val backButton = remember {mutableStateOf(false)}
+
 
 
 
@@ -171,6 +180,9 @@ fun StartScreen(navController: NavHostController) {
                         // 注册按钮显示
                         showregister.value = false
 
+                        // 返回按钮显示
+                        backButton.value = true
+
 
                     } else if (TextType == "sign_up") {
                         isBlured = 8f
@@ -187,6 +199,9 @@ fun StartScreen(navController: NavHostController) {
 
                         // 注册按钮显示
                         showregister.value = true
+
+                        // 返回按钮显示
+                        backButton.value = true
 
                     }
                 }
@@ -326,7 +341,7 @@ fun StartScreen(navController: NavHostController) {
         .fillMaxSize()
         .zIndex(1f)) {
         // 引用
-        val (InputEmail, InputName,InputPassword, InputCode,sentCode,registerBt,loginBtnyi) = createRefs()
+        val (InputEmail, InputName,InputPassword, InputCode,sentCode,registerBt,loginBtnyi,backBt) = createRefs()
         // 倒计时操作
         LaunchedEffect(countDown) {
             if (countDown in 0..59) {
@@ -738,6 +753,13 @@ fun StartScreen(navController: NavHostController) {
             )
         }
 
+        // 返回按钮
+        if (backButton.value) {
+            IconButton(onClick = {navController.navigate("Start")}, modifier = Modifier.size(30.dp).offset(x = 15.dp, y = 50.dp), content = {
+                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back",tint = Color.White)
+            })
+
+        }
 
         // 最终注册按钮
         if (showregister.value) {

@@ -82,9 +82,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
@@ -103,6 +101,7 @@ import com.konovalov.vad.webrtc.config.Mode
 import com.konovalov.vad.webrtc.config.SampleRate
 import java.io.File
 import kotlin.concurrent.thread
+import com.example.jeansapplication.RetrofitInstance
 
 
 
@@ -428,7 +427,7 @@ fun ChatPage(navController: NavHostController) {
         Column(modifier = Modifier
             .padding(WindowInsets.statusBars.asPaddingValues())
             .fillMaxSize()
-            .onGloballyPositioned{ coordinator->
+            .onGloballyPositioned { coordinator ->
                 // 聊天区域高度
                 val chatAreaHeightPxO = coordinator.size.height
                 chatAreaHeightPx.value = chatAreaHeightPxO
@@ -442,10 +441,10 @@ fun ChatPage(navController: NavHostController) {
             val chatBoxHeight = ConversionChatBoxHeight * 1f
             Row(
                 modifier = Modifier
-                    .padding(start = 4.dp, end =4.dp)
+                    .padding(start = 4.dp, end = 4.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .fillMaxWidth()
-                    .height(chatAreaHeightDp*0.1f)
+                    .height(chatAreaHeightDp * 0.1f)
                     .onGloballyPositioned { coordinator ->
                         val chatAreaWidthO = coordinator.size.width // 获取组件宽度PX
                         chatAreaWidth.value = chatAreaWidthO
@@ -456,13 +455,13 @@ fun ChatPage(navController: NavHostController) {
                 // 头像框
                 Box(
                     modifier = Modifier
-                        .height(chatAreaHeightDp*0.095f)
-                        .width(ConversionChatBoxWidth*0.195f)
+                        .height(chatAreaHeightDp * 0.095f)
+                        .width(ConversionChatBoxWidth * 0.195f)
                 ) {
                     Image(
                         modifier = Modifier
-                            .height(chatAreaHeightDp*0.095f)
-                            .width(ConversionChatBoxWidth*0.195f)
+                            .height(chatAreaHeightDp * 0.095f)
+                            .width(ConversionChatBoxWidth * 0.195f)
                             .padding(start = 17.dp)
                             .clip(RoundedCornerShape(11.dp)),
                         contentScale = ContentScale.Crop,
@@ -521,22 +520,22 @@ fun ChatPage(navController: NavHostController) {
             // 页面管理器
             Column(
                 modifier = Modifier
-                .fillMaxHeight()
-                .width(300.dp)
-                .onGloballyPositioned{ coordinate->
-                    val height = coordinate.size.height
-                    sidebarHeightPx.value = height
-                }
-                .background(Color(0.122f, 0.122f, 0.122f, 1.0f)),
+                    .fillMaxHeight()
+                    .width(300.dp)
+                    .onGloballyPositioned { coordinate ->
+                        val height = coordinate.size.height
+                        sidebarHeightPx.value = height
+                    }
+                    .background(Color(0.122f, 0.122f, 0.122f, 1.0f)),
                 verticalArrangement = Arrangement.spacedBy(5.dp))
             {
                 ListItem(
                     modifier = Modifier
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .fillMaxWidth()
-                        .height((with(density) {sidebarHeightPx.value.toDp()})*0.15f)
+                        .height((with(density) { sidebarHeightPx.value.toDp() }) * 0.15f)
                         .padding(WindowInsets.statusBars.asPaddingValues())
-                        .drawBehind{
+                        .drawBehind {
                             drawLine(
                                 color = Color.Gray, // 先用红色测试看能不能显示
                                 start = Offset(0f, size.height),
@@ -574,7 +573,7 @@ fun ChatPage(navController: NavHostController) {
                 ListItem(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height((with(density) {sidebarHeightPx.value.toDp()})*0.1f)
+                        .height((with(density) { sidebarHeightPx.value.toDp() }) * 0.1f)
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .clickable() {},
                     headlineContent = {Text(text = "Contacts List", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)},
@@ -615,7 +614,7 @@ fun ChatPage(navController: NavHostController) {
                     .fillMaxWidth()
                     .weight(0.8f)
                     .zIndex(0f)
-                    .onGloballyPositioned{ coordinator->
+                    .onGloballyPositioned { coordinator ->
                         val widthPx = coordinator.size.width
                         searchAreaWidthPx.value = widthPx
                         val heightPx = coordinator.size.height
@@ -626,7 +625,7 @@ fun ChatPage(navController: NavHostController) {
                 // 个人头像框及选项
                 Image(
                     modifier = Modifier
-                        .size(with(density){chatAreaHeightPx.value.toDp()*0.08f})
+                        .size(with(density) { chatAreaHeightPx.value.toDp() * 0.08f })
                         .padding(start = 17.dp, top = 15.dp)
                         .clip(CircleShape)
                         .clickable(
@@ -641,10 +640,13 @@ fun ChatPage(navController: NavHostController) {
                 // 音乐切换卡
                 Box(
                     modifier = Modifier
-                        .padding(start = with(density){searchAreaWidthPx.value.toDp()}*0.18f,top = with(density){searchAreaHeightPx.value.toDp()}*0.18f)
+                        .padding(
+                            start = with(density) { searchAreaWidthPx.value.toDp() } * 0.18f,
+                            top = with(density) { searchAreaHeightPx.value.toDp() } * 0.18f
+                        )
                         .clickable() {}
-                        .height(with(density){chatAreaHeightPx.value.toDp()*0.05f})
-                        .width(with(density){chatAreaHeightPx.value.toDp()*0.1f})
+                        .height(with(density) { chatAreaHeightPx.value.toDp() * 0.05f })
+                        .width(with(density) { chatAreaHeightPx.value.toDp() * 0.1f })
                         .clip(RoundedCornerShape(20.dp))
                         .background(
                             color = Color(0.161f, 0.161f, 0.161f, 1.0f), // 可选，控制边框内颜色
@@ -671,11 +673,11 @@ fun ChatPage(navController: NavHostController) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .drawBehind{
+                    .drawBehind {
                         drawLine(
                             color = Color.Gray, // 先用红色测试看能不能显示
                             start = Offset(50f, 0f),
-                            end = Offset((size.width-50), 0f),
+                            end = Offset((size.width - 50), 0f),
                             strokeWidth = 3f // 这里你原来写错了
                         )
                     }
@@ -780,7 +782,7 @@ fun ChatPage(navController: NavHostController) {
             Box(
                 modifier = Modifier
                     .zIndex(2f)
-                    .height((screenheight*0.53f).dp)
+                    .height((screenheight * 0.53f).dp)
                     .width(screenwidth.dp)
                     .padding(bottom = 30.dp)
             ) {
@@ -794,15 +796,15 @@ fun ChatPage(navController: NavHostController) {
                         .offset(y = offsetY)
                         .alpha(smallWindowAlpha)
                         .clip(RoundedCornerShape(20.dp))
-                        .height((screenheight*0.53f).dp)
+                        .height((screenheight * 0.53f).dp)
                         .width((screenwidth - 30).dp)
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .align(Alignment.Center)
                         .padding(bottom = 30.dp)
-                        .onGloballyPositioned{ coordinate->
-                            val width  = coordinate.size.width
+                        .onGloballyPositioned { coordinate ->
+                            val width = coordinate.size.width
                             smallWindowWidthPx.value = width
-                            val height  = coordinate.size.height
+                            val height = coordinate.size.height
                             smallWindowHeightPx.value = height
                         }
 
@@ -814,10 +816,10 @@ fun ChatPage(navController: NavHostController) {
                         modifier = Modifier
                             .padding(top = 15.dp, start = 15.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .width(with(density){smallWindowWidthPx.value.toDp()*0.9f})
-                            .height(with(density){smallWindowHeightPx.value.toDp()*0.25f})
+                            .width(with(density) { smallWindowWidthPx.value.toDp() * 0.9f })
+                            .height(with(density) { smallWindowHeightPx.value.toDp() * 0.25f })
                             .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
-                            .clickable(enabled = true) {navController.navigate("AddContacts")}
+                            .clickable(enabled = true) { navController.navigate("AddContacts") }
                     ) {
                         // 圆形图标显示
                         Icon(
@@ -863,8 +865,8 @@ fun ChatPage(navController: NavHostController) {
                         modifier = Modifier
                             .padding(top = 15.dp, start = 15.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .width(with(density){smallWindowWidthPx.value.toDp()*0.9f})
-                            .height(with(density){smallWindowHeightPx.value.toDp()*0.25f})
+                            .width(with(density) { smallWindowWidthPx.value.toDp() * 0.9f })
+                            .height(with(density) { smallWindowHeightPx.value.toDp() * 0.25f })
                             .background(Color(0.122f, 0.122f, 0.122f, 0.102f))
                             .clickable(enabled = true) {
                                 navController.navigate("AllOn")
@@ -941,7 +943,12 @@ fun AddContacts(navController: NavHostController) {
         BasicTextField(
             value = addContactsContent.value,
             onValueChange = {addContactsContent.value = it},
-            modifier = Modifier.width((screenwidth*0.9f).dp).height(40.dp).offset(x = (screenwidth*0.05f).dp, y = (screenheight*0.07f).dp).background(Color.White,RoundedCornerShape(6.dp)).padding(start = 10.dp),
+            modifier = Modifier
+                .width((screenwidth * 0.9f).dp)
+                .height(40.dp)
+                .offset(x = (screenwidth * 0.05f).dp, y = (screenheight * 0.12f).dp)
+                .background(Color.White, RoundedCornerShape(6.dp))
+                .padding(start = 10.dp),
             singleLine = true, // 单行输入
             textStyle = TextStyle(color = Color.Black, textAlign = TextAlign.Start, fontSize = 13.sp, fontWeight = FontWeight.Bold), // 输入文本颜色
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search), // 设置软键盘为搜索
@@ -972,14 +979,22 @@ fun AddContacts(navController: NavHostController) {
                             fontSize = 15.sp
                         )
                     }
+
+                    else {
+                        RetrofitInstance.api.makeARequest(addContactsContent.value)
+                        Log.i("Retrofit","调用构建器retrofit实例并传入查找用户姓名")
+                    }
                     innerTextField() // 渲染内容
                 }
             }
         )
 
         // 返回按钮
-        IconButton(onClick = {navController.navigate("Chat")},modifier = Modifier.size((screenwidth*0.2).dp).align(Alignment.TopStart).offset(x = 1.dp, y = 1.dp), content = {
-            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+        IconButton(onClick = {navController.navigate("Chat")},modifier = Modifier
+            .size((screenwidth * 0.12).dp)
+            .align(Alignment.TopStart)
+            .offset(x = 15.dp, y = 50.dp), content = {
+            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
         })
 
 
