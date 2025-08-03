@@ -981,7 +981,7 @@ fun AddContacts(navController: NavHostController) {
                     }
 
                     else {
-                        RetrofitInstance.api.makeARequest(addContactsContent.value)
+                        RetrofitInstance.b(LocalContext.current,addContactsContent.value)
                         Log.i("Retrofit","调用构建器retrofit实例并传入查找用户姓名")
                     }
                     innerTextField() // 渲染内容

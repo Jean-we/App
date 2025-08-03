@@ -1,6 +1,17 @@
 package com.example.jeansapplication
 
+import android.content.Context
+import android.os.Message
 import android.util.Log
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import okhttp3.internal.http2.Http2Connection
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -23,6 +34,9 @@ object RetrofitInstance {
             .build()
             .create(ApiService::class.java)
     }
+    fun b(context: Context,name: String) {
+        wda(context,name)
+    }
     init {
         Log.i("Retrofit", "构建器创建")
     }
@@ -33,6 +47,7 @@ object RetrofitInstance {
 data class QueryResults(
     val exists: Boolean
 )
+
 // 定义接口
 interface ApiService {
     @FormUrlEncoded
@@ -42,7 +57,7 @@ interface ApiService {
 }
 
 
-fun wda(name: String) {
+fun wda(context: Context,name: String) {
     // 接口的实现和调用接口方法
     val call = RetrofitInstance.api.makeARequest(name)
     Log.i("Retrofit", "接口方法调用，发送请求至后端")
@@ -61,12 +76,17 @@ fun wda(name: String) {
 
         // 连接失败
         override fun onFailure(call: Call<QueryResults?>, t: Throwable) {
+            android.app.AlertDialog.Builder(context)
+                .setTitle("Error Message")
+                .setMessage("${t.message}")
+                .setPositiveButton("YES",null)
+                .show()
+
             Log.w("Retrofit","连接失败,错误信息 ${t.message}")
         }
 
     })
 }
-
 
 
 
