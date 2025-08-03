@@ -84,6 +84,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.alpha
@@ -954,7 +956,6 @@ fun AddContacts(navController: NavHostController) {
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Search), // 设置软键盘为搜索
             keyboardActions = KeyboardActions(
                 onSearch = {
-
                 }
             ),
             decorationBox = { innerTextField ->// 自定义ui
@@ -979,11 +980,6 @@ fun AddContacts(navController: NavHostController) {
                             fontSize = 15.sp
                         )
                     }
-
-                    else {
-                        RetrofitInstance.b(LocalContext.current,addContactsContent.value)
-                        Log.i("Retrofit","调用构建器retrofit实例并传入查找用户姓名")
-                    }
                     innerTextField() // 渲染内容
                 }
             }
@@ -996,6 +992,12 @@ fun AddContacts(navController: NavHostController) {
             .offset(x = 15.dp, y = 50.dp), content = {
             Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
         })
+
+        // 搜索按钮
+        Button(colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0.161f, 0.161f, 0.161f, 1.0f), // 背景颜色哦
+            contentColor = Color.Black
+        ),shape = RoundedCornerShape(18.dp),onClick = {},modifier = Modifier.width((screenwidth*0.05).dp).height((screenheight*0.025).dp).align(Alignment.CenterEnd), content = {Text(text = "Search", textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 15.sp,color = Color(0.937f, 0.937f, 0.937f, 1.0f),)} )
 
 
 

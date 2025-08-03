@@ -1,17 +1,7 @@
 package com.example.jeansapplication
 
 import android.content.Context
-import android.os.Message
 import android.util.Log
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import okhttp3.internal.http2.Http2Connection
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -45,7 +35,8 @@ object RetrofitInstance {
 
 // 数据类
 data class QueryResults(
-    val exists: Boolean
+   val msg : String,
+   val status : String
 )
 
 // 定义接口
@@ -58,34 +49,57 @@ interface ApiService {
 
 
 fun wda(context: Context,name: String) {
-    // 接口的实现和调用接口方法
-    val call = RetrofitInstance.api.makeARequest(name)
-    Log.i("Retrofit", "接口方法调用，发送请求至后端")
-    // 发起异步请求
-    call.enqueue(object : Callback<QueryResults> {
-        // 连接成功
-        override fun onResponse(call: Call<QueryResults?>, response: Response<QueryResults?>) {
-            if (response.code()==200)   {
-                Log.w("Retrofit","返回码 ${response.code()}")
+    try {
+        // 接口的实现和调用接口方法
+        val call = RetrofitInstance.api.makeARequest(name)
+        Log.i("Retrofit", "接口方法调用，发送请求至后端")
+        // 发起异步请求
+        call.enqueue(object : Callback<QueryResults> {
+            // 连接成功
+            override fun onResponse(call: Call<QueryResults?>, response: Response<QueryResults?>) {
+                if (response.code() == 200) {
+                    Log.w("Retrofit", "状态码 ${response.code()}")
+                    android.app.AlertDialog.Builder(context)
+                        .setTitle("Error Message")
+                        .setMessage("状态码 ${response.code()} 错误")
+                        .setPositiveButton("YES",null)
+                        .show()
+                } else {
+                    val body = response.body() // 主动获取响应体
+                    Log.w("Retrofit", "请求成功 ${body}")
+                    if (body?.msg == "找到用户" && body?.status == "success") {
+                        Log.i("Retrofit", "成功接收到响应体")
+
+                    } else {
+                        Log.w("Retrofit", "响应体接收失败")
+                        android.app.AlertDialog.Builder(context)
+                            .setTitle("Error Message")
+                            .setMessage("响应体接收错误 ")
+                            .setPositiveButton("YES",null)
+                            .show()
+                    }
+
+                }
             }
-            else {
-                val body = response.body()
-                Log.w("Retrofit","请求成功 ${body}")
+
+            // 连接失败
+            override fun onFailure(call: Call<QueryResults?>, t: Throwable) {
+                android.app.AlertDialog.Builder(context)
+                    .setTitle("Error Message")
+                    .setMessage("${t.message}")
+                    .setPositiveButton("YES", null)
+                    .show()
+                Log.w("Retrofit", "连接失败,错误信息 ${t.message}")
             }
-        }
 
-        // 连接失败
-        override fun onFailure(call: Call<QueryResults?>, t: Throwable) {
-            android.app.AlertDialog.Builder(context)
-                .setTitle("Error Message")
-                .setMessage("${t.message}")
-                .setPositiveButton("YES",null)
-                .show()
-
-            Log.w("Retrofit","连接失败,错误信息 ${t.message}")
-        }
-
-    })
+        })
+    }
+    catch (e: Exception) {
+        Log.w("Retrofit","错误: ${e.message}")
+    }
+    finally {
+        Log.i("Retrofit", "请求流程结束")
+    }
 }
 
 
