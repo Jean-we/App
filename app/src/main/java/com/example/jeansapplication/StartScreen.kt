@@ -710,7 +710,7 @@ fun StartScreen(navController: NavHostController) {
                         verticalBias = 0.5f
                         // 宽度占父布局宽度的30%
                         width = Dimension.percent(0.3f)
-                        // 高度固定70dp
+                        // 高度固定60dp
                         height = Dimension.value(60.dp)
 
                     },

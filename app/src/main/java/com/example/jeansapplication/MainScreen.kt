@@ -97,6 +97,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.navigation.Navigator
 import com.konovalov.vad.webrtc.VadWebRTC
 import com.konovalov.vad.webrtc.config.FrameSize
 import com.konovalov.vad.webrtc.config.Mode
@@ -116,6 +117,9 @@ fun MainPageManner(navController: NavHostController) {
         composable("VideoCalling"){ VideoCalling(pageManner) }
         composable("AllOn"){ allOn(pageManner) }
         composable("AddContacts"){AddContacts(pageManner)}
+        composable("ContactCard"){contact_card(pageManner)}
+
+
     }
 }
 
@@ -925,10 +929,10 @@ fun ChatPage(navController: NavHostController) {
 
 
 
-
 // 添加联系人页面
 @Composable
 fun AddContacts(navController: NavHostController) {
+    val context = LocalContext.current
     Box(modifier = Modifier
         .fillMaxSize()
         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))){
@@ -997,8 +1001,7 @@ fun AddContacts(navController: NavHostController) {
         Button(colors = ButtonDefaults.buttonColors(
             containerColor = Color(0.161f, 0.161f, 0.161f, 1.0f), // 背景颜色哦
             contentColor = Color.Black
-        ),shape = RoundedCornerShape(18.dp),onClick = {},modifier = Modifier.width((screenwidth*0.05).dp).height((screenheight*0.025).dp).align(Alignment.CenterEnd), content = {Text(text = "Search", textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 15.sp,color = Color(0.937f, 0.937f, 0.937f, 1.0f),)} )
-
+        ),shape = RoundedCornerShape(18.dp),onClick = { RetrofitInstance.b(context,addContactsContent.value){ navController.navigate("ContactCard")} },modifier = Modifier.width((screenwidth*0.25).dp).height(50.dp).align(Alignment.TopCenter).offset(x = (screenwidth*0.35).dp,y = (screenheight*0.19).dp), content = {Text(text = "Search", textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, fontSize = 15.sp,color = Color(0.937f, 0.937f, 0.937f, 1.0f),)} )
 
 
     }
@@ -1006,3 +1009,37 @@ fun AddContacts(navController: NavHostController) {
 }
 
 
+
+// 联系人卡片，用于搜索到结果显示的卡片
+@Composable
+fun contact_card(navController: NavHostController) {
+    val screen = LocalConfiguration.current
+    val screenWidth = screen.screenWidthDp
+    val screenHeight = screen.screenHeightDp
+    Box(modifier = Modifier.fillMaxSize().background(color = Color(0.122f, 0.122f, 0.122f, 1.0f))) {
+        Row(
+            modifier = Modifier.offset(x = 25.dp, y = 60.dp).width((screenWidth * 0.9).dp).height((screenHeight * 0.08).dp).clip(RoundedCornerShape(20.dp)).background(color = Color(1f,1f,1f,1f)).clickable{ },
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+
+        ) {
+            Image(
+                modifier = Modifier.width((screenWidth * 0.19).dp).height((screenHeight*0.08).dp)
+                    .padding(start = 17.dp)
+                    .clip(RoundedCornerShape(15.dp))
+                    .align(Alignment.CenterVertically),
+                painter = painterResource(id = R.drawable.avatar),
+                contentDescription = "avatar"
+            )
+
+            Text(
+                modifier = Modifier.align(Alignment.Top).width((screenWidth*0.6).dp).height((screenHeight*0.03).dp).align(Alignment.CenterVertically).offset(x = 10.dp,y = 10.dp),
+                text = "Jean-_-",
+                textAlign = TextAlign.Start,
+                color = Color(0.0f, 0.0f, 0.0f, 1.0f),
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        }
+    }
+
+}

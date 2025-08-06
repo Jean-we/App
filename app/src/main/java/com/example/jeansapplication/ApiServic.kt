@@ -2,6 +2,7 @@ package com.example.jeansapplication
 
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.Composable
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -10,6 +11,7 @@ import retrofit2.http.FormUrlEncoded
 import retrofit2.http.POST
 import retrofit2.Callback
 import retrofit2.Response
+import com.example.jeansapplication.contact_card
 
 
 
@@ -24,8 +26,8 @@ object RetrofitInstance {
             .build()
             .create(ApiService::class.java)
     }
-    fun b(context: Context,name: String) {
-        wda(context,name)
+    fun b(context: Context,name: String,onSuccess: () -> Unit) {
+        wda(context,name, onSuccess)
     }
     init {
         Log.i("Retrofit", "构建器创建")
@@ -47,8 +49,7 @@ interface ApiService {
     fun makeARequest(@Field("name") name: String): Call<QueryResults>
 }
 
-
-fun wda(context: Context,name: String) {
+fun wda(context: Context,name: String,onSuccess: () -> Unit ) {
     try {
         // 接口的实现和调用接口方法
         val call = RetrofitInstance.api.makeARequest(name)
@@ -68,6 +69,7 @@ fun wda(context: Context,name: String) {
                     val body = response.body() // 主动获取响应体
                     Log.w("Retrofit", "请求成功 ${body}")
                     if (body?.msg == "找到用户" && body?.status == "success") {
+                        onSuccess()
                         Log.i("Retrofit", "成功接收到响应体")
 
                     } else {
@@ -89,6 +91,7 @@ fun wda(context: Context,name: String) {
                     .setMessage("${t.message}")
                     .setPositiveButton("YES", null)
                     .show()
+
                 Log.w("Retrofit", "连接失败,错误信息 ${t.message}")
             }
 
@@ -101,9 +104,6 @@ fun wda(context: Context,name: String) {
         Log.i("Retrofit", "请求流程结束")
     }
 }
-
-
-
 
 
 
