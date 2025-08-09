@@ -2,9 +2,11 @@ package com.example.jeansapplication
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.ColorSpace
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import org.json.JSONObject
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -97,7 +99,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
-import androidx.navigation.Navigator
+import androidx.compose.ui.unit.Density
 import com.konovalov.vad.webrtc.VadWebRTC
 import com.konovalov.vad.webrtc.config.FrameSize
 import com.konovalov.vad.webrtc.config.Mode
@@ -105,6 +107,11 @@ import com.konovalov.vad.webrtc.config.SampleRate
 import java.io.File
 import kotlin.concurrent.thread
 import com.example.jeansapplication.RetrofitInstance
+import com.google.gson.JsonObject
+import org.vosk.Model
+import org.vosk.Recognizer
+
+
 
 
 
@@ -117,11 +124,30 @@ fun MainPageManner(navController: NavHostController) {
         composable("VideoCalling"){ VideoCalling(pageManner) }
         composable("AllOn"){ allOn(pageManner) }
         composable("AddContacts"){AddContacts(pageManner)}
-        composable("ContactCard"){contact_card(pageManner)}
+        composable("ContactsCard"){contact_card(pageManner)  }
+
 
 
     }
 }
+
+// 全局变量
+object MYOBJECT {
+    @Composable()
+    fun GlobalVariable(): Triple<Int, Int, Density> {
+        // 获取屏幕宽高信息
+        val configuration = LocalConfiguration.current
+        val screenwidth = configuration.screenWidthDp
+        val screenheight = configuration.screenHeightDp
+        // 获取当前屏幕密度对象
+        val density = LocalDensity.current
+        return Triple(screenwidth, screenheight, density)
+    }
+}
+
+// 全局变量委托
+val myobjec by lazy { MYOBJECT }
+
 
 
 
@@ -154,179 +180,58 @@ class VideoProcessing: ComponentActivity() {
             false
         }
     }
-
 }
-
 
 // AI操作函数
 @Composable
 fun VideoCalling(navController: NavHostController){
+    val showText = remember {mutableStateOf(false)}
+    // 识别文字
+    val text = remember { mutableStateOf("") }
+    // 字幕显示
+    if (showText.value) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // 字幕显示
+            Text(
+                text = "",
+
+                modifier = Modifier.size(100.dp).align(Alignment.BottomEnd),
+                textAlign = TextAlign.Center,
+                textDecoration = null,
+                fontSize = 20.sp
+            )
+        }
+    }
+
     // 上下文
     val context = LocalContext.current
-    // 获取当前环境生命周期控制者
-    val lifecycleOwner = LocalLifecycleOwner.current
-    // 保证不会每次重组都会创建PreviewView
-    val previewView = remember {androidx.camera.view.PreviewView(context)} // 每个需要调用服务的功能都需要Context
-    // 异步获取CameraX摄像头管理器的实例
-    val cameraProviderFuture = remember {androidx.camera.lifecycle.ProcessCameraProvider.getInstance(context)}
-
-
-    val hasAudioPermission = ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.RECORD_AUDIO
-    ) == PackageManager.PERMISSION_GRANTED
-    if (hasAudioPermission) {
-        // 嵌入android原生view
-        AndroidView(
-            factory = { previewView },// 原声view
-            modifier = Modifier
-                .height(400.dp)
-                .width(350.dp)
-                .clip(RoundedCornerShape(25.dp)),
-            update = {
-                // 拿到实例
-                val camara = cameraProviderFuture.get()
-                // 创建预览实例
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider) // 把画面输出给 PreviewView
-                }
-                // 后置摄像头
-                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                try {
-                    camara.unbindAll() // 清除已有的绑定（避免冲突）
-                    camara.bindToLifecycle(
-                        lifecycleOwner, cameraSelector, preview // 绑定生命周期 + 用例
-                    )
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-
-            }
-        )
-        LaunchedEffect(Unit){
-            thread(start = true,name = "语音监听线程") {
-
-                    // 修复：完善 AudioFormat 配置
-                    val audioFormat = AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)  // 设置编码为 16 位 PCM
-                        .setSampleRate(44100)                         // 设置采样率为 44.1kHz
-                        .setChannelMask(AudioFormat.CHANNEL_IN_MONO)  // 设置为单声道
-                        .build()
-
-                    // 修复：使用完整配置的 AudioFormat
-                    val audioRecord = AudioRecord.Builder()
-                        .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
-                        .setAudioFormat(audioFormat)                  // 添加必要的音频格式
-                        .setPrivacySensitive(true)
-                        .setContext(context)
-                        .setBufferSizeInBytes(4000)
-                        .build()
-
-                    audioRecord.startRecording()
-                    // 缓冲区
-                    val bufferSize = AudioRecord.getMinBufferSize(
-                        16000,
-                        AudioFormat.CHANNEL_IN_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT
-                    )
-                    // 读取PCM数据存储数组
-                    val pcmarray = ShortArray(4000)
-                    // 语音数据存储池
-                    var speechPcmList = mutableListOf<Short>()
-                    // 从系统级缓冲区读取数据并复制进入软件级缓冲区
-                    val readdatasize = audioRecord.read(pcmarray, 0, 320, pcmarray.size)
-
-                    // VAD配置
-                    val vad = VadWebRTC(
-                        sampleRate = SampleRate.SAMPLE_RATE_16K, // 采样率
-                        frameSize = FrameSize.FRAME_SIZE_320, // // 帧大小：320个采样点（约20ms音频）
-                        mode = Mode.VERY_AGGRESSIVE, // 检测严格程度，越激进越容易把静音判断为无语音
-                        silenceDurationMs = 300, // 语音检测结束值
-                        speechDurationMs = 50 // 开始语音的时间门限
-                    )
-
-                    // 缓冲区达到指定指定大小读取PCM数据
-                    while (true) {
-
-
-                        // 人声判断
-                        if (vad.isSpeech(pcmarray)) {
-                            // 人声pcm数据添加进入数据池
-                            speechPcmList.add(pcmarray[pcmarray.size - 1])
-
-                            // 录像配置器
-                            val recorder = Recorder.Builder()
-                                .setQualitySelector(QualitySelector.from(Quality.HIGHEST)) // 录像质量
-                                .build()
-                            // 绑定录像控制器
-                            val videoCapture = VideoCapture.withOutput(recorder)
-
-                            // 保存文件
-                            val outputFile = File(
-                                context.getExternalFilesDir("Ask"),
-                                "video_${System.currentTimeMillis()}.mp4"
-                            )
-                            val outputOptions = FileOutputOptions.Builder(outputFile).build()
-
-                            // 开始录像
-                            val recording = videoCapture.output
-                                .prepareRecording(context, outputOptions)
-                                .start(ContextCompat.getMainExecutor(context)) { recordEvent ->
-                                    if (recordEvent is VideoRecordEvent.Finalize) {
-                                        Log.e("Recorder", "录像保存路径：${outputFile.absolutePath}")
-                                    }
-                                }
-
-
-                        } else {
-
-                            // 创建文件夹，用于发送云端AI
-                            val audioDir = File(
-                                context.getExternalFilesDir("Ask_${System.currentTimeMillis()}"),
-                                "audios"
-                            )
-                            if (!audioDir.exists()) {
-                                audioDir.mkdirs() // 创建文件夹（如果不存在）
-                            }
-
-                            // pcm文件,放入Ask文件夹
-                            val pcmFile = File(
-                                context.getExternalFilesDir("Ask"),
-                                "speech_${System.currentTimeMillis()}.pcm"
-                            )
-
-                            // 创建输出流
-                            val outputstream = pcmFile.outputStream()
-
-                            // 存储规则
-                            speechPcmList.forEach { sample ->
-                                outputstream.write((sample.toInt() and 0xFF))
-                                outputstream.write((sample.toInt() shr 8) and 0xFF)
-                            }
-
-                            // 打包mp3
-                            val mp3File = File(context.getExternalFilesDir("Ask"), "speech.mp3")
-
-                            val cmd = arrayOf(
-                                "-f", "s16le",
-                                "-ar", "16000",
-                                "-ac", "1",
-                                "-i", pcmFile.absolutePath,
-                                mp3File.absolutePath
-                            )
-                            outputstream.close()
-                            // 软件级数组清空
-                            speechPcmList.clear()
-
-
-                        }
-
-                    }
-
-                }
-        }
-
+    // 录像配置
+    val recorder by lazy {
+        Recorder.Builder()
+            .setQualitySelector(QualitySelector.from(Quality.FHD)) // 录制质量1080p
+            .build()
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 
@@ -352,19 +257,14 @@ fun allOn(navController: NavHostController) {
 
 @Composable
 fun ChatPage(navController: NavHostController) {
-    // 获取当前屏幕密度对象
-    val density = LocalDensity.current
     // 聊天区域高度信息
     val chatAreaHeightPx = remember { mutableStateOf(0)}
     // 聊天框区域宽高
     val  chatAreaWidth = remember { mutableStateOf(0) }
     val chatAreaHeight = remember { mutableStateOf(0) }
     // 聊天区域高度(已转化Dp)
-    val chatAreaHeightDp = with(density){chatAreaHeightPx.value.toDp()}
-    // 获取屏幕宽高信息
-    val configuration = LocalConfiguration.current
-    val screenwidth = configuration.screenWidthDp
-    val screenheight = configuration.screenHeightDp
+    val chatAreaHeightDp = with(myobjec.GlobalVariable().third){chatAreaHeightPx.value.toDp()}
+
 
     // 路由（页面ID）
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -373,7 +273,7 @@ fun ChatPage(navController: NavHostController) {
 
     // 小窗口弹出动画
     val offsetY by animateDpAsState(
-        targetValue = if (showWindow.value) (screenheight-600).dp else screenheight.dp,
+        targetValue = if (showWindow.value) (myobjec.GlobalVariable().second-600).dp else myobjec.GlobalVariable().second.dp,
         animationSpec = tween(
             durationMillis = 900,
             easing = FastOutSlowInEasing
@@ -440,8 +340,8 @@ fun ChatPage(navController: NavHostController) {
             }
         ) {
             // 聊天区域宽、高度px转化dp
-            val ConversionChatBoxWidth = with(density) {chatAreaWidth.value.toDp()}
-            val ConversionChatBoxHeight = with(density) {chatAreaHeight.value.toDp()}
+            val ConversionChatBoxWidth = with(myobjec.GlobalVariable().third) {chatAreaWidth.value.toDp()}
+            val ConversionChatBoxHeight = with(myobjec.GlobalVariable().third) {chatAreaHeight.value.toDp()}
             // 聊天区域宽高度
             val chatBoxWidth = ConversionChatBoxWidth * 0.7f
             val chatBoxHeight = ConversionChatBoxHeight * 1f
@@ -539,7 +439,7 @@ fun ChatPage(navController: NavHostController) {
                     modifier = Modifier
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .fillMaxWidth()
-                        .height((with(density) { sidebarHeightPx.value.toDp() }) * 0.15f)
+                        .height((with(myobjec.GlobalVariable().third) { sidebarHeightPx.value.toDp() }) * 0.15f)
                         .padding(WindowInsets.statusBars.asPaddingValues())
                         .drawBehind {
                             drawLine(
@@ -579,7 +479,7 @@ fun ChatPage(navController: NavHostController) {
                 ListItem(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height((with(density) { sidebarHeightPx.value.toDp() }) * 0.1f)
+                        .height((with(myobjec.GlobalVariable().third) { sidebarHeightPx.value.toDp() }) * 0.1f)
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .clickable() {},
                     headlineContent = {Text(text = "Contacts List", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)},
@@ -631,7 +531,7 @@ fun ChatPage(navController: NavHostController) {
                 // 个人头像框及选项
                 Image(
                     modifier = Modifier
-                        .size(with(density) { chatAreaHeightPx.value.toDp() * 0.08f })
+                        .size(with(myobjec.GlobalVariable().third) { chatAreaHeightPx.value.toDp() * 0.08f })
                         .padding(start = 17.dp, top = 15.dp)
                         .clip(CircleShape)
                         .clickable(
@@ -647,12 +547,12 @@ fun ChatPage(navController: NavHostController) {
                 Box(
                     modifier = Modifier
                         .padding(
-                            start = with(density) { searchAreaWidthPx.value.toDp() } * 0.18f,
-                            top = with(density) { searchAreaHeightPx.value.toDp() } * 0.18f
+                            start = with(myobjec.GlobalVariable().third) { searchAreaWidthPx.value.toDp() } * 0.18f,
+                            top = with(myobjec.GlobalVariable().third) { searchAreaHeightPx.value.toDp() } * 0.18f
                         )
                         .clickable() {}
-                        .height(with(density) { chatAreaHeightPx.value.toDp() * 0.05f })
-                        .width(with(density) { chatAreaHeightPx.value.toDp() * 0.1f })
+                        .height(with(myobjec.GlobalVariable().third) { chatAreaHeightPx.value.toDp() * 0.05f })
+                        .width(with(myobjec.GlobalVariable().third) { chatAreaHeightPx.value.toDp() * 0.1f })
                         .clip(RoundedCornerShape(20.dp))
                         .background(
                             color = Color(0.161f, 0.161f, 0.161f, 1.0f), // 可选，控制边框内颜色
@@ -788,8 +688,8 @@ fun ChatPage(navController: NavHostController) {
             Box(
                 modifier = Modifier
                     .zIndex(2f)
-                    .height((screenheight * 0.53f).dp)
-                    .width(screenwidth.dp)
+                    .height((myobjec.GlobalVariable().second * 0.53f).dp)
+                    .width(myobjec.GlobalVariable().first.dp)
                     .padding(bottom = 30.dp)
             ) {
                 // 小窗口宽高信息
@@ -802,8 +702,8 @@ fun ChatPage(navController: NavHostController) {
                         .offset(y = offsetY)
                         .alpha(smallWindowAlpha)
                         .clip(RoundedCornerShape(20.dp))
-                        .height((screenheight * 0.53f).dp)
-                        .width((screenwidth - 30).dp)
+                        .height((myobjec.GlobalVariable().second  * 0.53f).dp)
+                        .width((myobjec.GlobalVariable().first - 30).dp)
                         .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                         .align(Alignment.Center)
                         .padding(bottom = 30.dp)
@@ -822,8 +722,8 @@ fun ChatPage(navController: NavHostController) {
                         modifier = Modifier
                             .padding(top = 15.dp, start = 15.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .width(with(density) { smallWindowWidthPx.value.toDp() * 0.9f })
-                            .height(with(density) { smallWindowHeightPx.value.toDp() * 0.25f })
+                            .width(with(myobjec.GlobalVariable().third) { smallWindowWidthPx.value.toDp() * 0.9f })
+                            .height(with(myobjec.GlobalVariable().third) { smallWindowHeightPx.value.toDp() * 0.25f })
                             .background(Color(0.122f, 0.122f, 0.122f, 1.0f))
                             .clickable(enabled = true) { navController.navigate("AddContacts") }
                     ) {
@@ -871,8 +771,8 @@ fun ChatPage(navController: NavHostController) {
                         modifier = Modifier
                             .padding(top = 15.dp, start = 15.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .width(with(density) { smallWindowWidthPx.value.toDp() * 0.9f })
-                            .height(with(density) { smallWindowHeightPx.value.toDp() * 0.25f })
+                            .width(with(myobjec.GlobalVariable().third) { smallWindowWidthPx.value.toDp() * 0.9f })
+                            .height(with(myobjec.GlobalVariable().third) { smallWindowHeightPx.value.toDp() * 0.25f })
                             .background(Color(0.122f, 0.122f, 0.122f, 0.102f))
                             .clickable(enabled = true) {
                                 navController.navigate("AllOn")
@@ -924,6 +824,13 @@ fun ChatPage(navController: NavHostController) {
 
     }
     }
+
+}
+
+@androidx.compose.ui.tooling.preview.Preview(name = "wda")
+@Composable
+fun w() {
+
 
 }
 
@@ -1018,7 +925,7 @@ fun contact_card(navController: NavHostController) {
     val screenHeight = screen.screenHeightDp
     Box(modifier = Modifier.fillMaxSize().background(color = Color(0.122f, 0.122f, 0.122f, 1.0f))) {
         Row(
-            modifier = Modifier.offset(x = 25.dp, y = 60.dp).width((screenWidth * 0.9).dp).height((screenHeight * 0.08).dp).clip(RoundedCornerShape(20.dp)).background(color = Color(1f,1f,1f,1f)).clickable{ },
+            modifier = Modifier.align(Alignment.TopCenter).offset(y = 60.dp).width((screenWidth * 0.95).dp).height((screenHeight * 0.08).dp).clip(RoundedCornerShape(20.dp)).background(color = Color(1f,1f,1f,1f)).clickable{ },
             horizontalArrangement = Arrangement.spacedBy(5.dp)
 
         ) {

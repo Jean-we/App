@@ -85,4 +85,9 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
+    // Vosk
+    implementation("com.alphacephei:vosk-android:0.3.32")
+    implementation("net.java.dev.jna:jna:5.10.0@aar")
+    implementation("com.alphacephei:vosk-android:0.3.47")
 }
+
